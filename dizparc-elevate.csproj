@@ -1,0 +1,18 @@
+<Project Sdk="Microsoft.NET.Sdk.Web">
+
+  <PropertyGroup>
+    <TargetFramework>net9.0</TargetFramework>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <RootNamespace>dizparc_elevate</RootNamespace>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Microsoft.AspNetCore.Identity" Version="2.3.1" />
+    <PackageReference Include="Microsoft.AspNetCore.Mvc.Razor.RuntimeCompilation" Version="9.0.5" />
+    <PackageReference Include="Microsoft.Identity.Web" Version="3.9.3" />
+    <PackageReference Include="Microsoft.Identity.Web.UI" Version="3.9.3" />
+    <PackageReference Include="NetEscapades.AspNetCore.SecurityHeaders" Version="1.1.0" />
+  </ItemGroup>
+
+</Project>
