@@ -28,17 +28,35 @@
                         @ViewBag.ErrorMessage
                     </div>
                     
+                    @if (ViewBag.IsCorrelationError == true)
+                    {
+                        <div class="alert alert-info" role="alert">
+                            <h6><i class="fas fa-info-circle"></i> This appears to be a session correlation issue</h6>
+                            <p class="mb-0">This usually happens when browser cookies are blocked or cleared during the login process. The system has automatically cleared any problematic cookies.</p>
+                        </div>
+                    }
+                    
                     <h5>What can you do?</h5>
                     <ul>
-                        <li>Try signing in again by clicking the button below</li>
-                        <li>Clear your browser cookies and try again</li>
+                        <li><strong>Click "Retry Sign-In" below</strong> - This will clear all cookies and start fresh</li>
+                        @if (ViewBag.IsCorrelationError == true)
+                        {
+                            <li>Enable cookies in your browser for this site</li>
+                            <li>Disable any ad blockers or privacy extensions temporarily</li>
+                        }
+                        <li>Try using an incognito/private browsing window</li>
+                        <li>Clear your browser cookies and cache manually</li>
                         <li>Contact your administrator if the problem persists</li>
                     </ul>
                     
                     <div class="mt-4">
-                        <a href="@Url.Action("SignIn", "Account")" class="btn btn-primary">
+                        <a href="@Url.Action("RetrySignIn", "Account")" class="btn btn-primary">
+                            <i class="fas fa-redo"></i>
+                            Retry Sign-In
+                        </a>
+                        <a href="@Url.Action("SignIn", "Account")" class="btn btn-outline-primary ms-2">
                             <i class="fas fa-sign-in-alt"></i>
-                            Try Again
+                            Regular Sign-In
                         </a>
                         <a href="@Url.Action("Index", "Home")" class="btn btn-secondary ms-2">
                             <i class="fas fa-home"></i>

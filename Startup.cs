@@ -24,7 +24,7 @@ namespace dizparc_elevate
 
         public void ConfigureServices(IServiceCollection services)
         {
-            // Configure HSTS
+            // Configure HSTS for production
             services.AddHsts(options =>
             {
                 options.Preload = true;
@@ -50,7 +50,7 @@ namespace dizparc_elevate
 
             if (!_env.IsDevelopment())
             {
-                // In production, consider storing keys in Azure Key Vault or persistent storage
+                // In production, consider storing keys in Azure Key Vault
                 // dataProtectionBuilder.PersistKeysToAzureBlobStorage(connectionString, containerName, blobName);
                 // dataProtectionBuilder.ProtectKeysWithAzureKeyVault(keyIdentifier, credential);
             }
@@ -58,14 +58,14 @@ namespace dizparc_elevate
             // Configure enhanced session security
             services.AddSession(options =>
             {
-                options.IdleTimeout = TimeSpan.FromMinutes(30); // Extended for auth flow
+                options.IdleTimeout = TimeSpan.FromMinutes(30);
                 options.Cookie.HttpOnly = true;
                 options.Cookie.IsEssential = true;
                 options.Cookie.SecurePolicy = _env.IsDevelopment()
                     ? CookieSecurePolicy.SameAsRequest
                     : CookieSecurePolicy.Always;
                 options.Cookie.SameSite = SameSiteMode.Lax;
-                options.Cookie.Name = "SessionId";
+                options.Cookie.Name = ".AspNetCore.Session";
             });
 
             // Add Rate Limiting
@@ -102,10 +102,7 @@ namespace dizparc_elevate
                 };
             });
 
-            // Configure Security Headers using NetEscapades
-            // Note: This will be configured in the Configure method instead
-
-            // Add enhanced authentication
+            // WORKING AUTHENTICATION - Keep it simple but add back security events
             services.AddAuthentication(OpenIdConnectDefaults.AuthenticationScheme)
                 .AddMicrosoftIdentityWebApp(options =>
                 {
@@ -115,66 +112,64 @@ namespace dizparc_elevate
                     options.TenantId = Environment.GetEnvironmentVariable("AzureAd_TenantId");
                     options.CallbackPath = Environment.GetEnvironmentVariable("AzureAd_CallbackPath");
 
-                    // Enhanced security settings
-                    options.ResponseType = "code";
-                    options.UseTokenLifetime = true;
-                    options.UsePkce = true;
-
-                    // Set proper scopes
-                    options.Scope.Add("openid");
-                    options.Scope.Add("profile");
-                    options.Scope.Add("email");
-                    options.Scope.Add("user.read");
-
-                    // Additional security options
-                    options.GetClaimsFromUserInfoEndpoint = true;
-                    options.SaveTokens = false;
-
-                    // OAuth-specific cookie settings (keep minimal to avoid correlation issues)
-                    options.NonceCookie.SameSite = SameSiteMode.Lax;
-                    options.CorrelationCookie.SameSite = SameSiteMode.Lax;
-                    options.NonceCookie.SecurePolicy = _env.IsDevelopment()
-                        ? CookieSecurePolicy.SameAsRequest
-                        : CookieSecurePolicy.Always;
-                    options.CorrelationCookie.SecurePolicy = _env.IsDevelopment()
-                        ? CookieSecurePolicy.SameAsRequest
-                        : CookieSecurePolicy.Always;
-                });
-
-            // Configure Microsoft Identity options with enhanced token validation
-            services.Configure<MicrosoftIdentityOptions>(OpenIdConnectDefaults.AuthenticationScheme, options =>
-            {
-                options.Events.OnTokenValidated += async context =>
-                {
-                    // Extract and store user tenant ID
-                    string? userTenantId = context.Principal?.FindFirst("http://schemas.microsoft.com/identity/claims/tenantid")?.Value;
-                    if (!string.IsNullOrEmpty(userTenantId))
+                    // Add token validation events for security logging
+                    options.Events = new OpenIdConnectEvents
                     {
-                        context.HttpContext?.Session.SetString("UserTenantId", userTenantId);
-                        context.Properties?.Items.Add("userTenantId", userTenantId);
-                    }
+                        OnTokenValidated = async context =>
+                        {
+                            // Extract and store user tenant ID
+                            string? userTenantId = context.Principal?.FindFirst("http://schemas.microsoft.com/identity/claims/tenantid")?.Value;
+                            if (!string.IsNullOrEmpty(userTenantId))
+                            {
+                                context.HttpContext?.Session.SetString("UserTenantId", userTenantId);
+                            }
 
-                    // Log successful authentication for audit
-                    var logger = context.HttpContext?.RequestServices.GetRequiredService<ILogger<Startup>>();
-                    var userName = context.Principal?.Identity?.Name ?? "Unknown";
-                    var ipAddress = context.HttpContext?.Connection.RemoteIpAddress?.ToString();
+                            // Log successful authentication for audit
+                            var logger = context.HttpContext?.RequestServices.GetRequiredService<ILogger<Startup>>();
+                            var auditService = context.HttpContext?.RequestServices.GetService<IAuditService>();
+                            var userName = context.Principal?.Identity?.Name ?? "Unknown";
+                            var ipAddress = context.HttpContext?.Connection.RemoteIpAddress?.ToString();
 
-                    logger?.LogInformation(
-                        "User {UserName} successfully authenticated from IP {IpAddress} at {Timestamp}",
-                        userName, ipAddress, DateTime.UtcNow);
-                };
+                            logger?.LogInformation(
+                                "User {UserName} successfully authenticated from IP {IpAddress} at {Timestamp}",
+                                userName, ipAddress, DateTime.UtcNow);
 
-                options.Events.OnAuthenticationFailed += async context =>
-                {
-                    // Log failed authentication attempts
-                    var logger = context.HttpContext.RequestServices.GetRequiredService<ILogger<Startup>>();
-                    var ipAddress = context.HttpContext.Connection.RemoteIpAddress?.ToString();
+                            if (auditService != null)
+                            {
+                                await auditService.LogAsync("UserSignIn", "Authentication", true,
+                                    $"User {userName} signed in from IP {ipAddress}");
+                            }
+                        },
+                        OnAuthenticationFailed = async context =>
+                        {
+                            // Log failed authentication attempts
+                            var logger = context.HttpContext?.RequestServices.GetRequiredService<ILogger<Startup>>();
+                            var auditService = context.HttpContext?.RequestServices.GetService<IAuditService>();
+                            var ipAddress = context.HttpContext?.Connection.RemoteIpAddress?.ToString();
 
-                    logger.LogWarning(
-                        "Authentication failed from IP {IpAddress} at {Timestamp}. Error: {Error}",
-                        ipAddress, DateTime.UtcNow, context.Exception?.Message);
-                };
-            });
+                            logger?.LogWarning(
+                                "Authentication failed from IP {IpAddress} at {Timestamp}. Error: {Error}",
+                                ipAddress, DateTime.UtcNow, context.Exception?.Message);
+
+                            if (auditService != null)
+                            {
+                                await auditService.LogSecurityEventAsync(
+                                    "AuthenticationFailed",
+                                    "Failed authentication attempt",
+                                    $"IP: {ipAddress}, Error: {context.Exception?.Message}");
+                            }
+
+                            context.HandleResponse();
+                            context.Response.Redirect($"/Account/AuthError?error={Uri.EscapeDataString(context.Exception?.Message ?? "Unknown error")}");
+                        },
+                        OnRemoteFailure = context =>
+                        {
+                            context.HandleResponse();
+                            context.Response.Redirect($"/Account/AuthError?error={Uri.EscapeDataString(context.Failure?.Message ?? "Unknown error")}");
+                            return Task.CompletedTask;
+                        }
+                    };
+                });
 
             // Configure Anti-forgery protection
             services.AddAntiforgery(options =>
@@ -185,7 +180,7 @@ namespace dizparc_elevate
                     : CookieSecurePolicy.Always;
                 options.Cookie.SameSite = SameSiteMode.Lax;
                 options.Cookie.HttpOnly = true;
-                options.Cookie.Name = "RequestVerificationToken";
+                options.Cookie.Name = ".AspNetCore.Antiforgery";
             });
 
             // Configure authorization policies
@@ -197,13 +192,12 @@ namespace dizparc_elevate
                     policy.RequireAuthenticatedUser();
                 });
 
-                // Policy for administrative functions (add specific claims/roles as needed)
+                // Policy for administrative functions
                 options.AddPolicy("RequireAdminAccess", policy =>
                 {
                     policy.RequireAuthenticatedUser();
-                    // Add specific role or claim requirements here
+                    // Add specific role or claim requirements here when needed
                     // policy.RequireRole("Admin");
-                    // policy.RequireClaim("admin_access", "true");
                 });
 
                 // Policy for privileged operations
@@ -269,7 +263,7 @@ namespace dizparc_elevate
                 app.UseHsts();
             }
 
-            // security headers with netEscapades
+            // Add security headers using NetEscapades
             app.UseSecurityHeaders(policies =>
                 policies
                     .AddDefaultSecurityHeaders()
@@ -283,7 +277,7 @@ namespace dizparc_elevate
                         builder.AddFontSrc().Self();
                         builder.AddFormAction().Self();
                         builder.AddFrameAncestors().Self();
-                        builder.AddConnectSrc().Self();
+                        builder.AddConnectSrc().Self().From("https://login.microsoftonline.com");
                         builder.AddMediaSrc().Self();
                         builder.AddObjectSrc().None();
                         builder.AddBaseUri().Self();
@@ -306,11 +300,6 @@ namespace dizparc_elevate
                     .AddReferrerPolicyStrictOriginWhenCrossOrigin()
                     .RemoveServerHeader()
             );
-
-            // Add custom security middleware AFTER authentication
-            // Don't add these before authentication as they can interfere with OAuth flows
-            // app.UseRequestSizeValidation(10 * 1024 * 1024); // 10MB limit
-            // app.UseSecurityMonitoring();
 
             // Optionally enable IP whitelist in production
             if (!env.IsDevelopment() && _config.GetValue<bool>("Security:EnableIPWhitelist"))
@@ -342,7 +331,7 @@ namespace dizparc_elevate
 
             // Add custom security middleware AFTER authentication to avoid OAuth interference
             app.UseRequestSizeValidation(10 * 1024 * 1024); // 10MB limit
-            app.UseSecurityMonitoring();
+            app.UseSecurityMonitoring(); // Your security monitoring middleware
 
             // Configure endpoints
             app.UseEndpoints(endpoints =>

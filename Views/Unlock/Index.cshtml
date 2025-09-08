@@ -1,0 +1,195 @@
+﻿@{
+    ViewData["Title"] = "Unlock User Account";
+    Layout = "_Layout";
+}
+
+<div class="container">
+    <div class="row justify-content-center">
+        <div class="col-md-8 col-lg-6">
+            <div class="card shadow">
+                <div class="card-header bg-primary text-white">
+                    <h4 class="card-title mb-0">
+                        <i class="fas fa-unlock-alt me-2"></i>
+                        Unlock User Account
+                    </h4>
+                </div>
+                <div class="card-body">
+                    @if (!string.IsNullOrEmpty(ViewBag.Success))
+                    {
+                        <div class="alert alert-success alert-dismissible fade show" role="alert">
+                            <i class="fas fa-check-circle me-2"></i>
+                            @ViewBag.Success
+                            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                        </div>
+                    }
+
+                    @if (!string.IsNullOrEmpty(ViewBag.Error))
+                    {
+                        <div class="alert alert-danger alert-dismissible fade show" role="alert">
+                            <i class="fas fa-exclamation-triangle me-2"></i>
+                            @ViewBag.Error
+                            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                        </div>
+                    }
+
+                    <form method="post">
+                        <div class="mb-3">
+                            <label for="username" class="form-label">
+                                <i class="fas fa-user me-1"></i>
+                                Username <span class="text-danger">*</span>
+                            </label>
+                            <input type="text" class="form-control @(ViewData.ModelState["username"]?.Errors.Count > 0 ? "is-invalid" : "")" 
+                                   id="username" name="username" value="@@Request.Form["username"]" 
+                                   placeholder="Enter the username to unlock" required>
+                            @if (ViewData.ModelState["username"]?.Errors.Count > 0)
+                            {
+                                <div class="invalid-feedback">
+                                    @ViewData.ModelState["username"].Errors[0].ErrorMessage
+                                </div>
+                            }
+                        </div>
+
+                        <div class="mb-3">
+                            <label for="servers" class="form-label">
+                                <i class="fas fa-server me-1"></i>
+                                Servers <span class="text-danger">*</span>
+                            </label>
+                            <select class="form-select @(ViewData.ModelState["servers"]?.Errors.Count > 0 ? "is-invalid" : "")" 
+                                    id="servers" name="servers" multiple required>
+                                @{
+                                    var availableServers = ViewBag.Servers as List<string> ?? new List<string>();
+                                }
+                                @if (availableServers.Any())
+                                {
+                                    @foreach (var server in availableServers)
+                                    {
+                                        <option value="@server">@server</option>
+                                    }
+                                }
+                                else
+                                {
+                                    <option disabled>No servers available for your permissions</option>
+                                }
+                            </select>
+                            @if (ViewData.ModelState["servers"]?.Errors.Count > 0)
+                            {
+                                <div class="invalid-feedback">
+                                    @ViewData.ModelState["servers"].Errors[0].ErrorMessage
+                                </div>
+                            }
+                            <div class="form-text">
+                                Hold Ctrl (Windows) or Cmd (Mac) to select multiple servers. Available servers are based on your tier permissions.
+                            </div>
+                        </div>
+
+                        <div class="mb-3">
+                            <label for="roles" class="form-label">
+                                <i class="fas fa-users-cog me-1"></i>
+                                Roles <span class="text-danger">*</span>
+                            </label>
+                            <select class="form-select @(ViewData.ModelState["roles"]?.Errors.Count > 0 ? "is-invalid" : "")" 
+                                    id="roles" name="roles" multiple required>
+                                @{
+                                    var availableRoles = ViewBag.Roles as List<string> ?? new List<string>();
+                                }
+                                @if (availableRoles.Any())
+                                {
+                                    @foreach (var role in availableRoles)
+                                    {
+                                        <option value="@role">@role</option>
+                                    }
+                                }
+                                else
+                                {
+                                    <option disabled>No roles available for your permissions</option>
+                                }
+                            </select>
+                            @if (ViewData.ModelState["roles"]?.Errors.Count > 0)
+                            {
+                                <div class="invalid-feedback">
+                                    @ViewData.ModelState["roles"].Errors[0].ErrorMessage
+                                </div>
+                            }
+                            <div class="form-text">
+                                Hold Ctrl (Windows) or Cmd (Mac) to select multiple roles. Available roles are based on your permissions.
+                            </div>
+                        </div>
+
+                        <div class="mb-3">
+                            <label for="reason" class="form-label">
+                                <i class="fas fa-comment me-1"></i>
+                                Reason for Unlock <span class="text-danger">*</span>
+                            </label>
+                            <textarea class="form-control @(ViewData.ModelState["reason"]?.Errors.Count > 0 ? "is-invalid" : "")" 
+                                      id="reason" name="reason" rows="3" 
+                                      placeholder="Enter the reason for unlocking this account" required>@@Request.Form["reason"]</textarea>
+                            @if (ViewData.ModelState["reason"]?.Errors.Count > 0)
+                            {
+                                <div class="invalid-feedback">
+                                    @ViewData.ModelState["reason"].Errors[0].ErrorMessage
+                                </div>
+                            }
+                            <div class="form-text">
+                                Please provide a detailed reason for the unlock request for audit purposes.
+                            </div>
+                        </div>
+
+                        <div class="mb-3">
+                            <div class="card bg-light">
+                                <div class="card-body py-2">
+                                    <small class="text-muted">
+                                        <i class="fas fa-info-circle me-1"></i>
+                                        <strong>Request Details:</strong><br>
+                                        Requested by: <span class="text-dark">@User.Identity?.Name</span><br>
+                                        Elevate Account: <span class="text-dark">@ViewBag.ElevateAccount</span><br>
+                                        Tenant ID: <span class="text-dark">@ViewBag.TenantId</span><br>
+                                        Request time: <span class="text-dark">@DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss")</span>
+                                    </small>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="d-grid gap-2 d-md-flex justify-content-md-end">
+                            <a href="@Url.Action("Index", "Home")" class="btn btn-outline-secondary me-md-2">
+                                <i class="fas fa-arrow-left me-1"></i>
+                                Back to Home
+                            </a>
+                            <button type="submit" class="btn btn-primary" id="submitBtn">
+                                <i class="fas fa-unlock me-1"></i>
+                                Send Unlock Request
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+
+            <div class="mt-3">
+                <div class="alert alert-warning" role="alert">
+                    <i class="fas fa-exclamation-triangle me-2"></i>
+                    <strong>Important:</strong> All unlock requests are logged and audited. Ensure you have proper authorization before proceeding.
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script>
+        document.getElementById('submitBtn').addEventListener('click', function(e) {
+            const username = document.getElementById('username').value.trim();
+            const reason = document.getElementById('reason').value.trim();
+            
+            if (!username || !reason) {
+                return; // Let HTML5 validation handle this
+            }
+            
+            if (!confirm(`Are you sure you want to send an unlock request for user "${username}"?`)) {
+                e.preventDefault();
+            } else {
+                // Show loading state
+                this.innerHTML = '<i class="fas fa-spinner fa-spin me-1"></i>Sending Request...';
+                this.disabled = true;
+            }
+        });
+    </script>
+}

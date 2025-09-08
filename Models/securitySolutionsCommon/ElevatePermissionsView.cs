@@ -1,0 +1,19 @@
+﻿using System;
+using System.Collections.Generic;
+
+namespace dizparc_elevate.Models.securitySolutionsCommon;
+
+public partial class ElevatePermissionsView
+{
+    public int CustomerId { get; set; }
+
+    public string CustomerName { get; set; } = null!;
+
+    public string TenantId { get; set; } = null!;
+
+    public string ElevateAccount { get; set; } = null!;
+
+    public string Type { get; set; } = null!;
+
+    public string Value { get; set; } = null!;
+}
