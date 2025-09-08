@@ -1,5 +1,6 @@
 ﻿using dizparc_elevate.Middleware;
 using dizparc_elevate.Services;
+using dizparc_elevate.Models.securitySolutionsCommon;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.DataProtection;
 using Microsoft.AspNetCore.Mvc;
@@ -7,6 +8,7 @@ using Microsoft.AspNetCore.Mvc.Authorization;
 using Microsoft.Identity.Web;
 using Microsoft.Identity.Web.UI;
 using Microsoft.AspNetCore.Authentication.OpenIdConnect;
+using Microsoft.EntityFrameworkCore;
 using System.Threading.RateLimiting;
 
 namespace dizparc_elevate
@@ -170,6 +172,12 @@ namespace dizparc_elevate
                         }
                     };
                 });
+
+            var securitySolutionsCommonConnectionString = _config.GetConnectionString("securitySolutionsCommonSqlConnection");
+
+            services.AddDbContext<Sqldb_securitySolutionsCommon>(options =>
+                options.UseSqlServer(securitySolutionsCommonConnectionString));
+            services.AddScoped<Sqldb_securitySolutionsCommon>();
 
             // Configure Anti-forgery protection
             services.AddAntiforgery(options =>

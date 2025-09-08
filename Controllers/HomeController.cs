@@ -17,6 +17,12 @@ namespace dizparc_elevate.Controllers
 
         public IActionResult Index()
         {
+            // If user is not authenticated, redirect to sign-in
+            if (!User.Identity?.IsAuthenticated == true)
+            {
+                return RedirectToAction("SignIn", "Account");
+            }
+            
             return View();
         }
 

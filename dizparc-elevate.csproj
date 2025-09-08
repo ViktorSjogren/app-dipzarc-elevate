@@ -5,6 +5,7 @@
     <Nullable>enable</Nullable>
     <ImplicitUsings>enable</ImplicitUsings>
     <RootNamespace>dizparc_elevate</RootNamespace>
+    <UserSecretsId>7af6bb8c-6c48-4696-9b77-e33203b4a39b</UserSecretsId>
   </PropertyGroup>
 
   <ItemGroup>
