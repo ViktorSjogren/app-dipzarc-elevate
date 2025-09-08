@@ -1,0 +1,156 @@
+<?xml version="1.0" encoding="utf-8"?>
+<root>
+  <xsd:schema id="root" xmlns="" xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:msdata="urn:schemas-microsoft-com:xml-msdata">
+    <xsd:import namespace="http://www.w3.org/XML/1998/namespace" />
+    <xsd:element name="root" msdata:IsDataSet="true">
+      <xsd:complexType>
+        <xsd:choice maxOccurs="unbounded">
+          <xsd:element name="metadata">
+            <xsd:complexType>
+              <xsd:sequence>
+                <xsd:element name="value" type="xsd:string" minOccurs="0" />
+              </xsd:sequence>
+              <xsd:attribute name="name" use="required" type="xsd:string" />
+              <xsd:attribute name="type" type="xsd:string" />
+              <xsd:attribute name="mimetype" type="xsd:string" />
+              <xsd:attribute ref="xml:space" />
+            </xsd:complexType>
+          </xsd:element>
+          <xsd:element name="assembly">
+            <xsd:complexType>
+              <xsd:attribute name="alias" type="xsd:string" />
+              <xsd:attribute name="name" type="xsd:string" />
+            </xsd:complexType>
+          </xsd:element>
+          <xsd:element name="data">
+            <xsd:complexType>
+              <xsd:sequence>
+                <xsd:element name="value" type="xsd:string" minOccurs="0" msdata:Ordinal="1" />
+                <xsd:element name="comment" type="xsd:string" minOccurs="0" msdata:Ordinal="2" />
+              </xsd:sequence>
+              <xsd:attribute name="name" type="xsd:string" use="required" msdata:Ordinal="1" />
+              <xsd:attribute name="type" type="xsd:string" msdata:Ordinal="3" />
+              <xsd:attribute name="mimetype" type="xsd:string" msdata:Ordinal="4" />
+              <xsd:attribute ref="xml:space" />
+            </xsd:complexType>
+          </xsd:element>
+          <xsd:element name="resheader">
+            <xsd:complexType>
+              <xsd:sequence>
+                <xsd:element name="value" type="xsd:string" minOccurs="0" msdata:Ordinal="1" />
+              </xsd:sequence>
+              <xsd:attribute name="name" type="xsd:string" use="required" />
+            </xsd:complexType>
+          </xsd:element>
+        </xsd:choice>
+      </xsd:complexType>
+    </xsd:element>
+  </xsd:schema>
+  <resheader name="resmimetype">
+    <value>text/microsoft-resx</value>
+  </resheader>
+  <resheader name="version">
+    <value>2.0</value>
+  </resheader>
+  <resheader name="reader">
+    <value>System.Resources.ResXResourceReader, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </resheader>
+  <resheader name="writer">
+    <value>System.Resources.ResXResourceWriter, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </resheader>
+  <!-- Navigation -->
+  <data name="SignIn" xml:space="preserve">
+    <value>Sign in</value>
+  </data>
+  <data name="SignOut" xml:space="preserve">
+    <value>Sign out</value>
+  </data>
+  
+  <!-- Home Page -->
+  <data name="HomeTitle" xml:space="preserve">
+    <value>Dizparc Elevate - PAM Solutions</value>
+  </data>
+  <data name="UnlockUserAccount" xml:space="preserve">
+    <value>Unlock User Account</value>
+  </data>
+  <data name="UnlockDescription" xml:space="preserve">
+    <value>Unlock your privileged user account.</value>
+  </data>
+  <data name="StartUnlockProcess" xml:space="preserve">
+    <value>Start Unlock Process</value>
+  </data>
+  <data name="BackToDashboard" xml:space="preserve">
+    <value>Back to Dashboard</value>
+  </data>
+  <data name="NeedHelp" xml:space="preserve">
+    <value>Need Help?</value>
+  </data>
+  <data name="ContactSupportText" xml:space="preserve">
+    <value>Contact our support team for assistance with PAM operations, account issues, or system configuration.</value>
+  </data>
+  
+  <!-- Unlock Page -->
+  <data name="RequestInformation" xml:space="preserve">
+    <value>Request Information</value>
+  </data>
+  <data name="RequestInfoDescription" xml:space="preserve">
+    <value>Your access details and request information:</value>
+  </data>
+  <data name="RequestedBy" xml:space="preserve">
+    <value>Requested by</value>
+  </data>
+  <data name="ElevateAccount" xml:space="preserve">
+    <value>Elevate Account</value>
+  </data>
+  <data name="IPAddress" xml:space="preserve">
+    <value>IP Address</value>
+  </data>
+  <data name="RequestTime" xml:space="preserve">
+    <value>Request Time</value>
+  </data>
+  <data name="TargetServers" xml:space="preserve">
+    <value>Target Servers</value>
+  </data>
+  <data name="UserRoles" xml:space="preserve">
+    <value>User Roles</value>
+  </data>
+  <data name="SelectAll" xml:space="preserve">
+    <value>Select All</value>
+  </data>
+  <data name="ClearAll" xml:space="preserve">
+    <value>Clear All</value>
+  </data>
+  <data name="Selected" xml:space="preserve">
+    <value>selected</value>
+  </data>
+  <data name="ServerInstance" xml:space="preserve">
+    <value>Server instance</value>
+  </data>
+  <data name="PermissionRole" xml:space="preserve">
+    <value>Permission role</value>
+  </data>
+  <data name="ReasonForUnlock" xml:space="preserve">
+    <value>Reason for Unlock</value>
+  </data>
+  <data name="EnterReason" xml:space="preserve">
+    <value>Enter the reason for unlocking this account</value>
+  </data>
+  <data name="ReasonHelpText" xml:space="preserve">
+    <value>Please provide a detailed reason for the unlock request for audit purposes.</value>
+  </data>
+  <data name="SendRequest" xml:space="preserve">
+    <value>Send request</value>
+  </data>
+  <data name="SecurityNotice" xml:space="preserve">
+    <value>Security Notice</value>
+  </data>
+  <data name="SecurityNoticeText" xml:space="preserve">
+    <value>All unlock requests are comprehensively logged and audited for compliance purposes.</value>
+  </data>
+  <data name="NoServersAvailable" xml:space="preserve">
+    <value>No servers available for your permissions. Please contact your administrator.</value>
+  </data>
+  <data name="NoRolesAvailable" xml:space="preserve">
+    <value>No roles available for your permissions. Please contact your administrator.</value>
+  </data>
+</root>

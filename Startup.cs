@@ -10,6 +10,9 @@ using Microsoft.Identity.Web.UI;
 using Microsoft.AspNetCore.Authentication.OpenIdConnect;
 using Microsoft.EntityFrameworkCore;
 using System.Threading.RateLimiting;
+using System.Globalization;
+using Microsoft.AspNetCore.Localization;
+using Microsoft.Extensions.Options;
 
 namespace dizparc_elevate
 {
@@ -26,6 +29,28 @@ namespace dizparc_elevate
 
         public void ConfigureServices(IServiceCollection services)
         {
+            // Configure localization
+            services.AddLocalization(options => options.ResourcesPath = "Resources");
+            
+            services.Configure<RequestLocalizationOptions>(options =>
+            {
+                var supportedCultures = new[]
+                {
+                    new CultureInfo("en-US"),
+                    new CultureInfo("sv-SE")
+                };
+
+                options.DefaultRequestCulture = new RequestCulture("en-US");
+                options.SupportedCultures = supportedCultures;
+                options.SupportedUICultures = supportedCultures;
+                
+                // Add culture providers - cookie first, then query string
+                options.RequestCultureProviders.Clear();
+                options.RequestCultureProviders.Add(new CookieRequestCultureProvider());
+                options.RequestCultureProviders.Add(new QueryStringRequestCultureProvider());
+                options.RequestCultureProviders.Add(new AcceptLanguageHeaderRequestCultureProvider());
+            });
+
             // Configure HSTS for production
             services.AddHsts(options =>
             {
@@ -228,7 +253,10 @@ namespace dizparc_elevate
                 // Add anti-forgery token validation for all POST actions
                 options.Filters.Add(new AutoValidateAntiforgeryTokenAttribute());
 
-            }).AddRazorRuntimeCompilation();
+            })
+            .AddViewLocalization(Microsoft.AspNetCore.Mvc.Razor.LanguageViewLocationExpanderFormat.Suffix)
+            .AddDataAnnotationsLocalization()
+            .AddRazorRuntimeCompilation();
 
             services.AddRazorPages()
                 .AddMicrosoftIdentityUI();
@@ -332,6 +360,10 @@ namespace dizparc_elevate
 
             // Use routing
             app.UseRouting();
+            
+            // Use localization middleware
+            var localizationOptions = app.ApplicationServices.GetService<IOptions<RequestLocalizationOptions>>().Value;
+            app.UseRequestLocalization(localizationOptions);
 
             // Authentication must come before authorization
             app.UseAuthentication();

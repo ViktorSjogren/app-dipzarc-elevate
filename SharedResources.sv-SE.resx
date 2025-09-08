@@ -1,0 +1,156 @@
+<?xml version="1.0" encoding="utf-8"?>
+<root>
+  <xsd:schema id="root" xmlns="" xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:msdata="urn:schemas-microsoft-com:xml-msdata">
+    <xsd:import namespace="http://www.w3.org/XML/1998/namespace" />
+    <xsd:element name="root" msdata:IsDataSet="true">
+      <xsd:complexType>
+        <xsd:choice maxOccurs="unbounded">
+          <xsd:element name="metadata">
+            <xsd:complexType>
+              <xsd:sequence>
+                <xsd:element name="value" type="xsd:string" minOccurs="0" />
+              </xsd:sequence>
+              <xsd:attribute name="name" use="required" type="xsd:string" />
+              <xsd:attribute name="type" type="xsd:string" />
+              <xsd:attribute name="mimetype" type="xsd:string" />
+              <xsd:attribute ref="xml:space" />
+            </xsd:complexType>
+          </xsd:element>
+          <xsd:element name="assembly">
+            <xsd:complexType>
+              <xsd:attribute name="alias" type="xsd:string" />
+              <xsd:attribute name="name" type="xsd:string" />
+            </xsd:complexType>
+          </xsd:element>
+          <xsd:element name="data">
+            <xsd:complexType>
+              <xsd:sequence>
+                <xsd:element name="value" type="xsd:string" minOccurs="0" msdata:Ordinal="1" />
+                <xsd:element name="comment" type="xsd:string" minOccurs="0" msdata:Ordinal="2" />
+              </xsd:sequence>
+              <xsd:attribute name="name" type="xsd:string" use="required" msdata:Ordinal="1" />
+              <xsd:attribute name="type" type="xsd:string" msdata:Ordinal="3" />
+              <xsd:attribute name="mimetype" type="xsd:string" msdata:Ordinal="4" />
+              <xsd:attribute ref="xml:space" />
+            </xsd:complexType>
+          </xsd:element>
+          <xsd:element name="resheader">
+            <xsd:complexType>
+              <xsd:sequence>
+                <xsd:element name="value" type="xsd:string" minOccurs="0" msdata:Ordinal="1" />
+              </xsd:sequence>
+              <xsd:attribute name="name" type="xsd:string" use="required" />
+            </xsd:complexType>
+          </xsd:element>
+        </xsd:choice>
+      </xsd:complexType>
+    </xsd:element>
+  </xsd:schema>
+  <resheader name="resmimetype">
+    <value>text/microsoft-resx</value>
+  </resheader>
+  <resheader name="version">
+    <value>2.0</value>
+  </resheader>
+  <resheader name="reader">
+    <value>System.Resources.ResXResourceReader, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </resheader>
+  <resheader name="writer">
+    <value>System.Resources.ResXResourceWriter, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </resheader>
+  <!-- Navigation -->
+  <data name="SignIn" xml:space="preserve">
+    <value>Logga in</value>
+  </data>
+  <data name="SignOut" xml:space="preserve">
+    <value>Logga ut</value>
+  </data>
+  
+  <!-- Home Page -->
+  <data name="HomeTitle" xml:space="preserve">
+    <value>Dizparc Elevate - PAM-lösningar</value>
+  </data>
+  <data name="UnlockUserAccount" xml:space="preserve">
+    <value>Lås upp användarkonto</value>
+  </data>
+  <data name="UnlockDescription" xml:space="preserve">
+    <value>Lås upp ditt privilegierade användarkonto.</value>
+  </data>
+  <data name="StartUnlockProcess" xml:space="preserve">
+    <value>Starta upplåsningsprocess</value>
+  </data>
+  <data name="BackToDashboard" xml:space="preserve">
+    <value>Tillbaka till kontrollpanelen</value>
+  </data>
+  <data name="NeedHelp" xml:space="preserve">
+    <value>Behöver du hjälp?</value>
+  </data>
+  <data name="ContactSupportText" xml:space="preserve">
+    <value>Kontakta vårt supportteam för hjälp med PAM-operationer, kontoproblem eller systemkonfiguration.</value>
+  </data>
+  
+  <!-- Unlock Page -->
+  <data name="RequestInformation" xml:space="preserve">
+    <value>Begäraninformation</value>
+  </data>
+  <data name="RequestInfoDescription" xml:space="preserve">
+    <value>Dina åtkomstuppgifter och begäraninformation:</value>
+  </data>
+  <data name="RequestedBy" xml:space="preserve">
+    <value>Begärd av</value>
+  </data>
+  <data name="ElevateAccount" xml:space="preserve">
+    <value>Elevate-konto</value>
+  </data>
+  <data name="IPAddress" xml:space="preserve">
+    <value>IP-adress</value>
+  </data>
+  <data name="RequestTime" xml:space="preserve">
+    <value>Begäran tid</value>
+  </data>
+  <data name="TargetServers" xml:space="preserve">
+    <value>Målservrar</value>
+  </data>
+  <data name="UserRoles" xml:space="preserve">
+    <value>Användarroller</value>
+  </data>
+  <data name="SelectAll" xml:space="preserve">
+    <value>Välj alla</value>
+  </data>
+  <data name="ClearAll" xml:space="preserve">
+    <value>Rensa alla</value>
+  </data>
+  <data name="Selected" xml:space="preserve">
+    <value>valda</value>
+  </data>
+  <data name="ServerInstance" xml:space="preserve">
+    <value>Serverinstans</value>
+  </data>
+  <data name="PermissionRole" xml:space="preserve">
+    <value>Behörighetsroll</value>
+  </data>
+  <data name="ReasonForUnlock" xml:space="preserve">
+    <value>Anledning till upplåsning</value>
+  </data>
+  <data name="EnterReason" xml:space="preserve">
+    <value>Ange anledningen till att låsa upp detta konto</value>
+  </data>
+  <data name="ReasonHelpText" xml:space="preserve">
+    <value>Vänligen ange en detaljerad anledning för upplåsningsbegäran för granskningsändamål.</value>
+  </data>
+  <data name="SendRequest" xml:space="preserve">
+    <value>Skicka begäran</value>
+  </data>
+  <data name="SecurityNotice" xml:space="preserve">
+    <value>Säkerhetsmeddelande</value>
+  </data>
+  <data name="SecurityNoticeText" xml:space="preserve">
+    <value>Alla upplåsningsbegäranden loggas omfattande och granskas för efterlevnadsändamål.</value>
+  </data>
+  <data name="NoServersAvailable" xml:space="preserve">
+    <value>Inga servrar tillgängliga för dina behörigheter. Kontakta din administratör.</value>
+  </data>
+  <data name="NoRolesAvailable" xml:space="preserve">
+    <value>Inga roller tillgängliga för dina behörigheter. Kontakta din administratör.</value>
+  </data>
+</root>

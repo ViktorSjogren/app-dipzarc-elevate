@@ -1,4 +1,4 @@
-﻿!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="utf-8" />
@@ -23,18 +23,42 @@
                 <div class="navbar-collapse collapse d-sm-inline-flex justify-content-between">
                     <ul class="navbar-nav flex-grow-1">
                     </ul>
+                    @{
+                        var currentCulture = System.Globalization.CultureInfo.CurrentCulture.TwoLetterISOLanguageName;
+                        var languageDisplay = currentCulture == "sv" ? "Svenska" : "English";
+                    }
                     <ul class="navbar-nav">
+                        <li class="nav-item dropdown me-3">
+                            <a class="nav-link dropdown-toggle" href="#" id="languageDropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false" style="color: #FFC20E !important;">
+                                <i class="fas fa-globe me-1"></i>
+                                @languageDisplay
+                            </a>
+                            <ul class="dropdown-menu dropdown-menu-end" aria-labelledby="languageDropdown">
+                                <li>
+                                    <a class="dropdown-item" href="/Home/SetLanguage?culture=en-US&returnUrl=@Uri.EscapeDataString(Context.Request.Path)">
+                                        <img src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 60 30'%3E%3Crect width='60' height='30' fill='%23012169'/%3E%3Cpath d='M0,0 L60,30 M60,0 L0,30' stroke='%23fff' stroke-width='6'/%3E%3Cpath d='M0,0 L60,30 M60,0 L0,30' stroke='%23C8102E' stroke-width='4'/%3E%3Cpath d='M30,0 v30 M0,15 h60' stroke='%23fff' stroke-width='10'/%3E%3Cpath d='M30,0 v30 M0,15 h60' stroke='%23C8102E' stroke-width='6'/%3E%3C/svg%3E" width="20" class="me-2" alt="English">
+                                        English
+                                    </a>
+                                </li>
+                                <li>
+                                    <a class="dropdown-item" href="/Home/SetLanguage?culture=sv-SE&returnUrl=@Uri.EscapeDataString(Context.Request.Path)">
+                                        <img src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 10'%3E%3Crect width='16' height='10' fill='%23006AA7'/%3E%3Cpath d='M0,4 h5 v-4 h2 v4 h9 v2 h-9 v4 h-2 v-4 h-5 z' fill='%23FECC00'/%3E%3C/svg%3E" width="20" class="me-2" alt="Svenska">
+                                        Svenska
+                                    </a>
+                                </li>
+                            </ul>
+                        </li>
                         @if (User.Identity?.IsAuthenticated == true)
                         {
-                            <li class="nav-item">
+                            <li class="nav-item d-flex align-items-center">
                                 <span class="navbar-text me-3">
                                     <i class="fas fa-user-circle me-1" style="color: var(--color-success);"></i>
-                                    Hello, <strong>@User.Identity.Name</strong>!
+                                        <strong>@(User.FindFirst("name")?.Value ?? User.Identity.Name)</strong>
                                 </span>
                             </li>
                             <li class="nav-item">
                                 <a class="nav-link" asp-controller="Account" asp-action="SignOut">
-                                    <i class="fas fa-sign-out-alt me-1"></i>Sign out
+                                    <i class="fas fa-sign-out-alt me-1"></i>Sign Out
                                 </a>
                             </li>
                         }
@@ -42,7 +66,7 @@
                         {
                             <li class="nav-item">
                                 <a class="nav-link pulse-glow" asp-controller="Account" asp-action="SignIn">
-                                    <i class="fas fa-sign-in-alt me-1"></i>Sign in
+                                    <i class="fas fa-sign-in-alt me-1"></i>Sign In
                                 </a>
                             </li>
                         }
@@ -58,8 +82,8 @@
     </div>
 
     <footer class="border-top footer text-muted">
-        <div class="container">
-            &copy; 2025 - Dizparc Elevate - <a asp-area="" asp-controller="Home" asp-action="Privacy">Privacy</a>
+        <div class="container-fluid text-start">
+            &copy; Dizparc Elevate
         </div>
     </footer>
 

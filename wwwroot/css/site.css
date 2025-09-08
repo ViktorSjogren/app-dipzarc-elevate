@@ -65,6 +65,12 @@ body {
     box-shadow: var(--shadow-medium);
 }
 
+/* Language Dropdown Arrow Fix */
+#languageDropdown::after {
+    vertical-align: middle;
+    margin-left: 0.1em;
+}
+
 .navbar-brand {
     font-weight: 700;
     font-size: 1.5rem;

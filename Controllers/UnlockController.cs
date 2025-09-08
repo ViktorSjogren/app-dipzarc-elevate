@@ -19,10 +19,19 @@ namespace dizparc_elevate.Controllers
 
         public async Task<IActionResult> Index()
         {
+            await PopulateViewBagData();
+            return View();
+        }
+
+        private async Task PopulateViewBagData()
+        {
             var currentUsername = User.Identity?.Name;
             if (string.IsNullOrEmpty(currentUsername))
             {
-                return Unauthorized();
+                ViewBag.Error = "Authentication error. Please sign in again.";
+                ViewBag.Servers = new List<string>();
+                ViewBag.Roles = new List<string>();
+                return;
             }
 
             var userInfo = await _context.ElevateUsersViews
@@ -33,7 +42,7 @@ namespace dizparc_elevate.Controllers
                 ViewBag.Error = "User not found in the system. Please contact your administrator.";
                 ViewBag.Servers = new List<string>();
                 ViewBag.Roles = new List<string>();
-                return View();
+                return;
             }
 
             // Get user's tier permissions
@@ -47,7 +56,7 @@ namespace dizparc_elevate.Controllers
                 ViewBag.Error = "No permissions configured for your account. Please contact your administrator.";
                 ViewBag.Servers = new List<string>();
                 ViewBag.Roles = new List<string>();
-                return View();
+                return;
             }
 
             // Get available servers based on user's tenant and tiers
@@ -70,13 +79,14 @@ namespace dizparc_elevate.Controllers
             ViewBag.Roles = availableRoles;
             ViewBag.ElevateAccount = userInfo.ElevateAccount;
             ViewBag.TenantId = userInfo.TenantId;
-
-            return View();
         }
 
         [HttpPost]
         public async Task<IActionResult> Index(string username, string reason, string[] servers, string[] roles)
         {
+            // Always populate ViewBag data first
+            await PopulateViewBagData();
+
             if (string.IsNullOrWhiteSpace(username))
             {
                 ModelState.AddModelError("username", "Username is required");
@@ -89,15 +99,9 @@ namespace dizparc_elevate.Controllers
                 return View();
             }
 
-            if (servers == null || servers.Length == 0)
+            if ((servers == null || servers.Length == 0) && (roles == null || roles.Length == 0))
             {
-                ModelState.AddModelError("servers", "At least one server must be selected");
-                return View();
-            }
-
-            if (roles == null || roles.Length == 0)
-            {
-                ModelState.AddModelError("roles", "At least one role must be selected");
+                ModelState.AddModelError("", "At least one server or role must be selected");
                 return View();
             }
 
