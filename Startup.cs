@@ -64,8 +64,8 @@ namespace dizparc_elevate
                 options.Cookie.SecurePolicy = _env.IsDevelopment()
                     ? CookieSecurePolicy.SameAsRequest
                     : CookieSecurePolicy.Always;
-                options.Cookie.SameSite = SameSiteMode.Lax; // Changed from Strict
-                options.Cookie.Name = "SessionId"; // Remove __Host- prefix
+                options.Cookie.SameSite = SameSiteMode.Lax;
+                options.Cookie.Name = "SessionId";
             });
 
             // Add Rate Limiting
@@ -130,7 +130,7 @@ namespace dizparc_elevate
                     options.GetClaimsFromUserInfoEndpoint = true;
                     options.SaveTokens = false;
 
-                    // CRITICAL: OAuth-specific cookie settings
+                    // OAuth-specific cookie settings (keep minimal to avoid correlation issues)
                     options.NonceCookie.SameSite = SameSiteMode.Lax;
                     options.CorrelationCookie.SameSite = SameSiteMode.Lax;
                     options.NonceCookie.SecurePolicy = _env.IsDevelopment()
@@ -183,9 +183,9 @@ namespace dizparc_elevate
                 options.Cookie.SecurePolicy = _env.IsDevelopment()
                     ? CookieSecurePolicy.SameAsRequest
                     : CookieSecurePolicy.Always;
-                options.Cookie.SameSite = SameSiteMode.Lax; // Changed from Strict
+                options.Cookie.SameSite = SameSiteMode.Lax;
                 options.Cookie.HttpOnly = true;
-                options.Cookie.Name = "RequestVerificationToken"; // Remove __Host- prefix
+                options.Cookie.Name = "RequestVerificationToken";
             });
 
             // Configure authorization policies
@@ -225,10 +225,6 @@ namespace dizparc_elevate
 
                 // Add anti-forgery token validation for all POST actions
                 options.Filters.Add(new AutoValidateAntiforgeryTokenAttribute());
-
-                // Add model validation for all actions
-                options.ModelValidatorProviders.Clear();
-                // options.ModelValidatorProviders.Add(new DefaultModelValidatorProvider());
 
             }).AddRazorRuntimeCompilation();
 
@@ -311,9 +307,10 @@ namespace dizparc_elevate
                     .RemoveServerHeader()
             );
 
-            // Add custom security middleware
-            app.UseRequestSizeValidation(10 * 1024 * 1024); // 10MB limit
-            app.UseSecurityMonitoring();
+            // Add custom security middleware AFTER authentication
+            // Don't add these before authentication as they can interfere with OAuth flows
+            // app.UseRequestSizeValidation(10 * 1024 * 1024); // 10MB limit
+            // app.UseSecurityMonitoring();
 
             // Optionally enable IP whitelist in production
             if (!env.IsDevelopment() && _config.GetValue<bool>("Security:EnableIPWhitelist"))
@@ -342,6 +339,10 @@ namespace dizparc_elevate
             // Authentication must come before authorization
             app.UseAuthentication();
             app.UseAuthorization();
+
+            // Add custom security middleware AFTER authentication to avoid OAuth interference
+            app.UseRequestSizeValidation(10 * 1024 * 1024); // 10MB limit
+            app.UseSecurityMonitoring();
 
             // Configure endpoints
             app.UseEndpoints(endpoints =>

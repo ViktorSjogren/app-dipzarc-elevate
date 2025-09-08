@@ -33,7 +33,10 @@ namespace dizparc_elevate.Middleware
                 // Skip audit logging for authentication endpoints to avoid circular dependencies
                 if (request.Path.StartsWithSegments("/signin-oidc") ||
                     request.Path.StartsWithSegments("/signout-oidc") ||
-                    request.Path.StartsWithSegments("/MicrosoftIdentity"))
+                    request.Path.StartsWithSegments("/signout-callback-oidc") ||
+                    request.Path.StartsWithSegments("/MicrosoftIdentity") ||
+                    request.Path.StartsWithSegments("/Account/SignIn") ||
+                    request.Path.StartsWithSegments("/Account/SignOut"))
                 {
                     return; // Don't monitor auth endpoints
                 }
