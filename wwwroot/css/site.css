@@ -63,6 +63,8 @@ body {
     color: #f8f9fa !important;
     border-bottom: 2px solid var(--color-success);
     box-shadow: var(--shadow-medium);
+    position: relative;
+    z-index: 1040;
 }
 
 /* Language Dropdown Arrow Fix */
@@ -108,6 +110,22 @@ body {
 .nav-link:hover::after {
     width: 100%;
     left: 0;
+}
+
+/* Dropdown menu styling for dark navbar */
+.navbar .dropdown-menu {
+    background: var(--color-secondary-dark);
+    border: 1px solid rgba(113, 191, 68, 0.2);
+}
+
+.navbar .dropdown-item {
+    color: #f8f9fa;
+}
+
+.navbar .dropdown-item:hover,
+.navbar .dropdown-item:focus {
+    background: var(--color-primary-dark);
+    color: #f8f9fa;
 }
 
 /* Container and Layout */

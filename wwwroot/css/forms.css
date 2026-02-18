@@ -58,7 +58,7 @@
 .input-group-styled .form-control:focus {
     outline: none;
     border-color: var(--color-primary-dark);
-    box-shadow: 0 0 0 3px rgba(32, 59, 70, 0.1);
+    box-shadow: 0 0 0 3px rgba(42, 20, 80, 0.1);
 }
 
 .input-group-styled .form-control:disabled {
@@ -147,7 +147,7 @@
 .select-styled select:focus {
     outline: none;
     border-color: var(--color-primary-dark);
-    box-shadow: 0 0 0 3px rgba(32, 59, 70, 0.1);
+    box-shadow: 0 0 0 3px rgba(42, 20, 80, 0.1);
 }
 
 /* ===== TEXTAREA STYLES ===== */
@@ -165,7 +165,7 @@
 .textarea-styled:focus {
     outline: none;
     border-color: var(--color-primary-dark);
-    box-shadow: 0 0 0 3px rgba(32, 59, 70, 0.1);
+    box-shadow: 0 0 0 3px rgba(42, 20, 80, 0.1);
 }
 
 /* ===== SWITCH TOGGLE ===== */

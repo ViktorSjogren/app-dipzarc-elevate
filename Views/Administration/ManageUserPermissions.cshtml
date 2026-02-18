@@ -11,12 +11,11 @@
 @Html.AntiForgeryToken()
 
 <div class="page-wrapper-fixed">
-    @await Html.PartialAsync("_CustomerSwitcher")
     <div class="page-content-section" style="padding-top: 56px; height: calc(100vh - 56px);">
         <div class="layout-with-blade" style="height: 100%;">
             <!-- Left Blade -->
             <div class="layout-blade" style="height: 100%;">
-                <div class="blade-container" style="background: linear-gradient(180deg, rgba(32, 59, 70, 0.98) 0%, rgba(32, 59, 70, 0.92) 100%); border-right: 3px solid var(--color-primary-dark); box-shadow: 2px 0 10px rgba(0,0,0,0.3); height: 100%; display: flex; flex-direction: column; overflow: hidden;">
+                <div class="blade-container" style="background: linear-gradient(180deg, rgba(42, 20, 80, 0.98) 0%, rgba(42, 20, 80, 0.92) 100%); border-right: 3px solid var(--color-primary-dark); box-shadow: 2px 0 10px rgba(0,0,0,0.3); height: 100%; display: flex; flex-direction: column; overflow: hidden;">
                     <div class="blade-header" style="padding: .5rem 1rem; margin-bottom: 0.75rem; border-bottom: 2px solid var(--color-primary-dark); background: rgba(0,0,0,0.3); flex-shrink: 0;">
                         <h3 class="mb-1 text-white">
                             <i class="fas fa-shield-alt me-2" style="color: var(--color-warning);"></i>
@@ -66,7 +65,7 @@
                     <div class="row">
                         <!-- Assigned Permissions -->
                         <div class="col-md-6 mb-3">
-                            <div class="card h-100" style="background: rgba(32, 59, 70, 0.95); border: 1px solid var(--color-primary-dark);">
+                            <div class="card h-100" style="background: rgba(42, 20, 80, 0.95); border: 1px solid var(--color-primary-dark);">
                                 <div class="card-header" style="background: linear-gradient(135deg, var(--color-primary-dark) 0%, var(--color-secondary-dark) 100%); border-bottom: 2px solid var(--color-primary-dark);">
                                     <h5 class="text-white mb-0"><i class="fas fa-check-circle me-2 text-success"></i>Assigned Permissions</h5>
                                 </div>
@@ -96,7 +95,7 @@
 
                         <!-- Available Permissions -->
                         <div class="col-md-6 mb-3">
-                            <div class="card h-100" style="background: rgba(32, 59, 70, 0.95); border: 1px solid var(--color-primary-dark);">
+                            <div class="card h-100" style="background: rgba(42, 20, 80, 0.95); border: 1px solid var(--color-primary-dark);">
                                 <div class="card-header" style="background: linear-gradient(135deg, var(--color-primary-dark) 0%, var(--color-secondary-dark) 100%); border-bottom: 2px solid var(--color-primary-dark);">
                                     <h5 class="text-white mb-0">
                                         <i class="fas fa-plus-circle me-2" style="color: var(--color-warning);"></i>

@@ -1,5 +1,5 @@
 /* =====================================================
-   COMPONENT CLASSES - Bufab Elevate
+   COMPONENT CLASSES - Dizparc Elevate
    Reusable component styles for consistent UI elements
    ===================================================== */
 
@@ -66,10 +66,10 @@
 }
 
 .form-check-styled.checked {
-    background: rgba(32, 59, 70, 0.1);
+    background: rgba(42, 20, 80, 0.1);
     border-color: var(--color-primary-dark);
     transform: scale(1.02);
-    box-shadow: 0 2px 8px rgba(32, 59, 70, 0.2);
+    box-shadow: 0 2px 8px rgba(42, 20, 80, 0.2);
 }
 
 .form-control-styled {
@@ -82,7 +82,7 @@
 
 .form-control-styled:focus {
     border-color: var(--color-primary-dark);
-    box-shadow: 0 0 0 0.2rem rgba(32, 59, 70, 0.1);
+    box-shadow: 0 0 0 0.2rem rgba(42, 20, 80, 0.1);
 }
 
 .form-section {
@@ -316,7 +316,7 @@
 }
 
 .alert-info-styled {
-    background-color: rgba(32, 59, 70, 0.1);
+    background-color: rgba(42, 20, 80, 0.1);
     border-color: var(--color-primary-dark);
     color: var(--color-primary-dark);
 }
@@ -364,7 +364,7 @@
 
 /* ===== BLADE COMPONENTS ===== */
 .blade-container {
-    background: linear-gradient(180deg, rgba(32, 59, 70, 0.05) 0%, rgba(223, 235, 239, 0.1) 100%);
+    background: linear-gradient(180deg, rgba(42, 20, 80, 0.05) 0%, rgba(223, 235, 239, 0.1) 100%);
     border-right: 2px solid var(--color-light-neutral);
     padding: 1.5rem;
     height: 100%;

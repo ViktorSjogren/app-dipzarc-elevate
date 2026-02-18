@@ -8,36 +8,35 @@
 
 <style>
     .tier-select {
-        background-color: #1a3a47 !important;
+        background-color: #2A1450 !important;
         border: 1px solid rgba(255,255,255,0.2) !important;
         color: white !important;
     }
     .tier-select:focus {
-        background-color: #1a3a47 !important;
+        background-color: #2A1450 !important;
         border-color: var(--color-primary) !important;
         box-shadow: 0 0 0 0.25rem rgba(var(--color-primary-rgb), 0.25) !important;
         color: white !important;
     }
     .tier-select option {
-        background-color: #1a3a47;
+        background-color: #2A1450;
         color: white;
         padding: 10px;
     }
     .tier-select option:hover,
     .tier-select option:focus,
     .tier-select option:checked {
-        background-color: #2d5a6b;
+        background-color: #3d2070;
         color: white;
     }
 </style>
 
 <div class="page-wrapper-fixed">
-    @await Html.PartialAsync("_CustomerSwitcher")
     <div class="page-content-section" style="padding-top: 56px; height: calc(100vh - 56px);">
         <div class="container-fluid h-100">
             <div class="row justify-content-center align-items-center h-100">
                 <div class="col-md-6 col-lg-5">
-                    <div class="card" style="background: rgba(32, 59, 70, 0.95); border: 2px solid var(--color-primary-dark); box-shadow: 0 10px 30px rgba(0,0,0,0.5);">
+                    <div class="card" style="background: rgba(42, 20, 80, 0.95); border: 2px solid var(--color-primary-dark); box-shadow: 0 10px 30px rgba(0,0,0,0.5);">
                         <div class="card-header" style="background: linear-gradient(135deg, var(--color-primary-dark) 0%, var(--color-secondary-dark) 100%); border-bottom: 2px solid var(--color-primary-dark);">
                             <h4 class="text-white mb-0">
                                 <i class="fas fa-server me-2 text-warning"></i>
