@@ -1,4 +1,5 @@
-﻿using dizparc_elevate.Middleware;
+using dizparc_elevate.Authorization;
+using dizparc_elevate.Middleware;
 using dizparc_elevate.Services;
 using dizparc_elevate.Models.securitySolutionsCommon;
 using Microsoft.AspNetCore.Authorization;
@@ -31,7 +32,7 @@ namespace dizparc_elevate
         {
             // Configure localization
             services.AddLocalization(options => options.ResourcesPath = "Resources");
-            
+
             services.Configure<RequestLocalizationOptions>(options =>
             {
                 var supportedCultures = new[]
@@ -43,7 +44,7 @@ namespace dizparc_elevate
                 options.DefaultRequestCulture = new RequestCulture("en-US");
                 options.SupportedCultures = supportedCultures;
                 options.SupportedUICultures = supportedCultures;
-                
+
                 // Add culture providers - cookie first, then query string
                 options.RequestCultureProviders.Clear();
                 options.RequestCultureProviders.Add(new CookieRequestCultureProvider());
@@ -163,8 +164,7 @@ namespace dizparc_elevate
 
                             if (auditService != null)
                             {
-                                await auditService.LogAsync("UserSignIn", "Authentication", true,
-                                    $"User {userName} signed in from IP {ipAddress}");
+                                await auditService.LogAsync("UserSignIn", new { userName, ipAddress });
                             }
                         },
                         OnAuthenticationFailed = async context =>
@@ -180,10 +180,11 @@ namespace dizparc_elevate
 
                             if (auditService != null)
                             {
-                                await auditService.LogSecurityEventAsync(
-                                    "AuthenticationFailed",
-                                    "Failed authentication attempt",
-                                    $"IP: {ipAddress}, Error: {context.Exception?.Message}");
+                                await auditService.LogAsync("AuthenticationFailed", new
+                                {
+                                    ipAddress,
+                                    error = context.Exception?.Message
+                                });
                             }
 
                             context.HandleResponse();
@@ -201,7 +202,14 @@ namespace dizparc_elevate
             var securitySolutionsCommonConnectionString = _config.GetConnectionString("securitySolutionsCommonSqlConnection");
 
             services.AddDbContext<Sqldb_securitySolutionsCommon>(options =>
-                options.UseSqlServer(securitySolutionsCommonConnectionString));
+                options.UseSqlServer(securitySolutionsCommonConnectionString, sqlOptions =>
+                {
+                    sqlOptions.EnableRetryOnFailure(
+                        maxRetryCount: 3,
+                        maxRetryDelay: TimeSpan.FromSeconds(30),
+                        errorNumbersToAdd: null);
+                    sqlOptions.CommandTimeout(30);
+                }));
             services.AddScoped<Sqldb_securitySolutionsCommon>();
 
             // Configure Anti-forgery protection
@@ -216,6 +224,15 @@ namespace dizparc_elevate
                 options.Cookie.Name = ".AspNetCore.Antiforgery";
             });
 
+            // Register admin authorization handler
+            services.AddScoped<IAuthorizationHandler, ElevateAdminHandler>();
+
+            // Register webhook service for Azure Automation calls
+            services.AddScoped<IWebhookService, WebhookService>();
+
+            // Register Graph service for Entra ID group management
+            services.AddScoped<IGraphService, GraphService>();
+
             // Configure authorization policies
             services.AddAuthorization(options =>
             {
@@ -225,12 +242,11 @@ namespace dizparc_elevate
                     policy.RequireAuthenticatedUser();
                 });
 
-                // Policy for administrative functions
+                // Policy for administrative functions - any admin role
                 options.AddPolicy("RequireAdminAccess", policy =>
                 {
                     policy.RequireAuthenticatedUser();
-                    // Add specific role or claim requirements here when needed
-                    // policy.RequireRole("Admin");
+                    policy.AddRequirements(new ElevateAdminRequirement());
                 });
 
                 // Policy for privileged operations
@@ -267,6 +283,24 @@ namespace dizparc_elevate
                 client.Timeout = TimeSpan.FromSeconds(30);
                 client.DefaultRequestHeaders.Add("User-Agent", "entraPam/1.0");
             });
+
+            // Webhook client: Azure Automation round-robins across IPs and some are
+            // intermittently dead. PooledConnectionLifetime = 0 forces DNS re-resolution
+            // on every connection so each retry attempt can land on a different IP.
+            services.AddHttpClient("Webhook")
+                .ConfigurePrimaryHttpMessageHandler(() => new SocketsHttpHandler
+                {
+                    PooledConnectionLifetime = TimeSpan.Zero,
+                    PooledConnectionIdleTimeout = TimeSpan.FromSeconds(1),
+                    ConnectTimeout = TimeSpan.FromSeconds(2),
+                    // Force HTTP/1.1 - HTTP/2 multiplexes requests over a single
+                    // connection, which defeats DNS round-robin on retries.
+                    EnableMultipleHttp2Connections = false
+                })
+                .SetHandlerLifetime(TimeSpan.FromSeconds(5));
+
+            // Add generic HttpClientFactory for dependency injection
+            services.AddHttpClient();
 
             services.AddHttpContextAccessor();
 
@@ -360,7 +394,7 @@ namespace dizparc_elevate
 
             // Use routing
             app.UseRouting();
-            
+
             // Use localization middleware
             var localizationOptions = app.ApplicationServices.GetService<IOptions<RequestLocalizationOptions>>().Value;
             app.UseRequestLocalization(localizationOptions);

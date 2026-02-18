@@ -1,0 +1,31 @@
+@{
+    ViewData["Title"] = "Unlock Request Sent";
+    Layout = "_Layout";
+}
+
+<div class="w-100" style="padding-top: 56px;">
+    <div class="container-fluid px-3 py-2rem">
+        <div class="row justify-content-center">
+            <div class="col-12 col-md-8 col-lg-6 col-xl-5">
+                <div class="card pulse-glow mx-auto text-center">
+                    <div class="card-body py-5">
+                        <div class="mb-4">
+                            <i class="fas fa-check-circle fa-4x" style="color: var(--color-warning);"></i>
+                        </div>
+                        <h3 class="mb-3">Request Sent Successfully</h3>
+                        <p class="mb-1">
+                            The unlock request for <strong style="color: var(--color-warning);">@ViewBag.Username</strong> has been submitted.
+                        </p>
+                        <p class="text-muted mb-4" style="font-size: 0.875rem;">
+                            The request is now being processed. This may take a few moments.
+                        </p>
+                        <a href="@Url.Action("Index", "Home")" class="btn btn-primary btn-lg pulse-glow">
+                            <i class="fas fa-home me-2"></i>
+                            Return to Dashboard
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>

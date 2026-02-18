@@ -11,9 +11,13 @@ public partial class ElevateUsersView
 
     public string TenantId { get; set; } = null!;
 
-    public string Username { get; set; } = null!;
+    public string UserName { get; set; } = null!;
 
     public string ElevateAccount { get; set; } = null!;
 
     public string PhoneNumber { get; set; } = null!;
+
+    public string Status { get; set; } = null!;
+
+    public string Tier { get; set; } = null!;
 }

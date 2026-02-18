@@ -11,7 +11,9 @@ public partial class ElevateServersView
 
     public string TenantId { get; set; } = null!;
 
+    public string Tier { get; set; } = null!;
+
     public string ServerName { get; set; } = null!;
 
-    public string Tier { get; set; } = null!;
+    public byte OnboardingStatus { get; set; }
 }

@@ -1,7 +1,8 @@
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
-using dizparc_elevate.Models.securitySolutionsCommon;
+using dizparc_elevate.Services;
 using Microsoft.EntityFrameworkCore;
+using dizparc_elevate.Models.securitySolutionsCommon;
 
 namespace dizparc_elevate.Controllers
 {
@@ -10,11 +11,15 @@ namespace dizparc_elevate.Controllers
     {
         private readonly ILogger<UnlockController> _logger;
         private readonly Sqldb_securitySolutionsCommon _context;
+        private readonly IWebhookService _webhookService;
+        private readonly IAuditService _auditService;
 
-        public UnlockController(ILogger<UnlockController> logger, Sqldb_securitySolutionsCommon context)
+        public UnlockController(ILogger<UnlockController> logger, Sqldb_securitySolutionsCommon context, IWebhookService webhookService, IAuditService auditService)
         {
             _logger = logger;
             _context = context;
+            _webhookService = webhookService;
+            _auditService = auditService;
         }
 
         public async Task<IActionResult> Index()
@@ -23,7 +28,7 @@ namespace dizparc_elevate.Controllers
             return View();
         }
 
-        private async Task PopulateViewBagData()
+        private async Task PopulateViewBagData(string? selectedElevateAccount = null)
         {
             var currentUsername = User.Identity?.Name;
             if (string.IsNullOrEmpty(currentUsername))
@@ -31,61 +36,110 @@ namespace dizparc_elevate.Controllers
                 ViewBag.Error = "Authentication error. Please sign in again.";
                 ViewBag.Servers = new List<string>();
                 ViewBag.Roles = new List<string>();
+                ViewBag.ElevateAccounts = new List<string>();
                 return;
             }
 
-            var userInfo = await _context.ElevateUsersViews
-                .FirstOrDefaultAsync(u => u.Username == currentUsername);
+            // Find ALL active elevate accounts for this username
+            var userAccounts = await _context.ElevateUsers
+                .Where(u => u.UserName == currentUsername)
+                .ToListAsync();
 
-            if (userInfo == null)
+            if (!userAccounts.Any())
             {
                 ViewBag.Error = "User not found in the system. Please contact your administrator.";
                 ViewBag.Servers = new List<string>();
                 ViewBag.Roles = new List<string>();
+                ViewBag.ElevateAccounts = new List<string>();
                 return;
             }
 
-            // Get user's tier permissions
-            var userTiers = await _context.ElevatePermissionsViews
-                .Where(p => p.ElevateAccount == userInfo.ElevateAccount && p.Type == "tier")
-                .Select(p => p.Value)
+            var accountNames = userAccounts.Select(u => u.ElevateAccount).OrderBy(a => a).ToList();
+            ViewBag.ElevateAccounts = accountNames;
+
+            // Determine which account to show permissions for
+            var activeAccount = selectedElevateAccount;
+            if (string.IsNullOrEmpty(activeAccount) || !accountNames.Contains(activeAccount))
+            {
+                activeAccount = accountNames.First();
+            }
+
+            ViewBag.ElevateAccount = activeAccount;
+
+            // Get available servers based on selected account's permissions
+            var availableServers = await _context.ElevateUserPermissionsViews
+                .Where(s => s.ElevateAccount == activeAccount && s.PermissionType == "server")
+                .Select(s => s.PermissionValue)
+                .Distinct()
+                .OrderBy(s => s)
                 .ToListAsync();
 
-            if (!userTiers.Any())
+            // Get available AD roles based on selected account's permissions
+            var availableRoles = await _context.ElevateUserPermissionsViews
+                .Where(s => s.ElevateAccount == activeAccount && s.PermissionType == "ad_role")
+                .Select(s => s.PermissionValue)
+                .Distinct()
+                .OrderBy(s => s)
+                .ToListAsync();
+
+            if (!availableServers.Any() && !availableRoles.Any())
             {
-                ViewBag.Error = "No permissions configured for your account. Please contact your administrator.";
+                ViewBag.Error = "No servers or roles configured for your account. Please contact your administrator.";
                 ViewBag.Servers = new List<string>();
                 ViewBag.Roles = new List<string>();
                 return;
             }
 
-            // Get available servers based on user's tenant and tiers
-            var availableServers = await _context.ElevateServersViews
-                .Where(s => s.TenantId == userInfo.TenantId && userTiers.Contains(s.Tier))
-                .Select(s => s.ServerName)
+            ViewBag.Servers = availableServers;
+            ViewBag.Roles = availableRoles;
+        }
+
+        [HttpGet]
+        public async Task<IActionResult> GetAccountPermissions(string elevateAccount)
+        {
+            var currentUsername = User.Identity?.Name;
+            if (string.IsNullOrEmpty(currentUsername))
+            {
+                return Json(new { error = "Authentication error." });
+            }
+
+            // Verify the account belongs to this user
+            var userAccount = await _context.ElevateUsers
+                .FirstOrDefaultAsync(u => u.UserName == currentUsername && u.ElevateAccount == elevateAccount);
+
+            if (userAccount == null)
+            {
+                return Json(new { error = "Account not found or does not belong to you." });
+            }
+
+            var servers = await _context.ElevateUserPermissionsViews
+                .Where(s => s.ElevateAccount == elevateAccount && s.PermissionType == "server")
+                .Select(s => s.PermissionValue)
                 .Distinct()
                 .OrderBy(s => s)
                 .ToListAsync();
 
-            // Get available roles based on user's tier permissions
-            var availableRoles = await _context.ElevatePermissionsViews
-                .Where(p => p.ElevateAccount == userInfo.ElevateAccount && p.Type == "role")
-                .Select(p => p.Value)
+            var roles = await _context.ElevateUserPermissionsViews
+                .Where(s => s.ElevateAccount == elevateAccount && s.PermissionType == "ad_role")
+                .Select(s => s.PermissionValue)
                 .Distinct()
-                .OrderBy(r => r)
+                .OrderBy(s => s)
                 .ToListAsync();
 
-            ViewBag.Servers = availableServers;
-            ViewBag.Roles = availableRoles;
-            ViewBag.ElevateAccount = userInfo.ElevateAccount;
-            ViewBag.TenantId = userInfo.TenantId;
+            return Json(new { servers, roles });
+        }
+
+        public IActionResult Success(string username)
+        {
+            ViewBag.Username = username;
+            return View();
         }
 
         [HttpPost]
-        public async Task<IActionResult> Index(string username, string reason, string[] servers, string[] roles)
+        public async Task<IActionResult> Index(string username, string reason, string[] servers, string[] roles, string elevateAccount)
         {
             // Always populate ViewBag data first
-            await PopulateViewBagData();
+            await PopulateViewBagData(elevateAccount);
 
             if (string.IsNullOrWhiteSpace(username))
             {
@@ -108,19 +162,20 @@ namespace dizparc_elevate.Controllers
             try
             {
                 var currentUsername = User.Identity?.Name;
-                var userInfo = await _context.ElevateUsersViews
-                    .FirstOrDefaultAsync(u => u.Username == currentUsername);
+
+                // Look up the specific ElevateUser record by both username AND elevateAccount
+                var userInfo = await _context.ElevateUsers
+                    .FirstOrDefaultAsync(u => u.UserName == currentUsername && u.ElevateAccount == elevateAccount);
 
                 if (userInfo == null)
                 {
-                    ViewBag.Error = "User not found in the system. Please contact your administrator.";
+                    ViewBag.Error = "Elevate account not found or does not belong to you. Please contact your administrator.";
                     return View();
                 }
 
                 var payload = new
                 {
                     elevate_account = userInfo.ElevateAccount,
-                    tenant_id = userInfo.TenantId,
                     username = username.Trim(),
                     unlock = new
                     {
@@ -129,43 +184,97 @@ namespace dizparc_elevate.Controllers
                     }
                 };
 
-                using var httpClient = new HttpClient();
-                httpClient.Timeout = TimeSpan.FromSeconds(30);
+                var result = await _webhookService.PostFromEnvAsync(
+                    "Unlock_ActiveDirectoryAccountWebhook_webhook", payload);
 
-                var json = System.Text.Json.JsonSerializer.Serialize(payload);
-                var content = new StringContent(json, System.Text.Encoding.UTF8, "application/json");
-
-                var webhookUrl = Environment.GetEnvironmentVariable("Unlock_ActiveDirectoryAccountWebhook_webhook");
-                
-                if (string.IsNullOrEmpty(webhookUrl))
+                if (!result.Success)
                 {
-                    _logger.LogError("Webhook URL environment variable 'Unlock_ActiveDirectoryAccountWebhook_webhook' is not configured");
-                    ViewBag.Error = "System configuration error. Please contact your administrator.";
+                    ViewBag.Error = result.ErrorMessage ?? "Failed to send unlock request. Please try again.";
                     return View();
                 }
-                var response = await httpClient.PostAsync(webhookUrl, content);
 
-                if (response.IsSuccessStatusCode)
+                _logger.LogInformation("Successfully sent unlock request for user {Username} (account: {ElevateAccount}) by {RequestedBy}",
+                    username, elevateAccount, User.Identity?.Name);
+
+                await _auditService.LogAsync("UnlockRequested", new { elevateAccount, username = username.Trim(), servers, roles });
+
+                // Record active permissions for each selected server
+                if (servers != null && servers.Length > 0)
                 {
-                    _logger.LogInformation("Successfully sent unlock request for user {Username} by {RequestedBy}", username, User.Identity?.Name);
-                    ViewBag.Success = $"Unlock request for user '{username}' has been sent successfully.";
-                    ModelState.Clear();
+                    var serverType = await _context.ElevatePermissionTypes
+                        .FirstOrDefaultAsync(pt => pt.Type == "server");
+                    if (serverType != null)
+                    {
+                        foreach (var server in servers)
+                        {
+                            var existing = await _context.ElevateActivePermissions
+                                .FirstOrDefaultAsync(ap => ap.UserName == username.Trim()
+                                    && ap.PermissionType == serverType.ElevatePermissionTypesId
+                                    && ap.Permission == server);
+
+                            if (existing != null)
+                            {
+                                existing.Active = true;
+                                existing.UpdatedBy = currentUsername ?? "system";
+                            }
+                            else
+                            {
+                                _context.ElevateActivePermissions.Add(new ElevateActivePermission
+                                {
+                                    UserName = username.Trim(),
+                                    PermissionType = serverType.ElevatePermissionTypesId,
+                                    Permission = server,
+                                    Active = true,
+                                    ManuallyAssigned = false,
+                                    CustomerId = userInfo.CustomerId,
+                                    CreatedBy = currentUsername ?? "system",
+                                    UpdatedBy = currentUsername ?? "system"
+                                });
+                            }
+                        }
+                    }
                 }
-                else
+
+                // Record active permissions for each selected role
+                if (roles != null && roles.Length > 0)
                 {
-                    _logger.LogError("Failed to send unlock request for user {Username}. Status: {StatusCode}", username, response.StatusCode);
-                    ViewBag.Error = "Failed to send unlock request. Please try again or contact support.";
+                    var roleType = await _context.ElevatePermissionTypes
+                        .FirstOrDefaultAsync(pt => pt.Type == "ad_role");
+                    if (roleType != null)
+                    {
+                        foreach (var role in roles)
+                        {
+                            var existing = await _context.ElevateActivePermissions
+                                .FirstOrDefaultAsync(ap => ap.UserName == username.Trim()
+                                    && ap.PermissionType == roleType.ElevatePermissionTypesId
+                                    && ap.Permission == role);
+
+                            if (existing != null)
+                            {
+                                existing.Active = true;
+                                existing.UpdatedBy = currentUsername ?? "system";
+                            }
+                            else
+                            {
+                                _context.ElevateActivePermissions.Add(new ElevateActivePermission
+                                {
+                                    UserName = username.Trim(),
+                                    PermissionType = roleType.ElevatePermissionTypesId,
+                                    Permission = role,
+                                    Active = true,
+                                    ManuallyAssigned = false,
+                                    CustomerId = userInfo.CustomerId,
+                                    CreatedBy = currentUsername ?? "system",
+                                    UpdatedBy = currentUsername ?? "system"
+                                });
+                            }
+                        }
+                    }
                 }
-            }
-            catch (HttpRequestException ex)
-            {
-                _logger.LogError(ex, "Network error while sending unlock request for user {Username}", username);
-                ViewBag.Error = "Network error occurred. Please check your connection and try again.";
-            }
-            catch (TaskCanceledException ex)
-            {
-                _logger.LogError(ex, "Timeout while sending unlock request for user {Username}", username);
-                ViewBag.Error = "Request timed out. Please try again.";
+
+                await _context.SaveChangesAsync();
+
+                return RedirectToAction("Success", new { username = username.Trim() });
             }
             catch (Exception ex)
             {

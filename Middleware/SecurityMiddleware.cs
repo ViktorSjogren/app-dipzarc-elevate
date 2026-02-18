@@ -70,10 +70,13 @@ namespace dizparc_elevate.Middleware
                     {
                         try
                         {
-                            await auditService.LogSecurityEventAsync(
-                                "SuspiciousRequest",
-                                $"Suspicious pattern detected: {pattern}",
-                                $"Path: {request.Path}, QueryString: {request.QueryString}, UserAgent: {userAgent}");
+                            await auditService.LogAsync("SuspiciousRequest", new
+                                {
+                                    message = $"Suspicious pattern detected: {pattern}",
+                                    path = request.Path.ToString(),
+                                    queryString = request.QueryString.ToString(),
+                                    userAgent
+                                });
                         }
                         catch (Exception ex)
                         {
@@ -102,10 +105,12 @@ namespace dizparc_elevate.Middleware
                     {
                         try
                         {
-                            await auditService.LogSecurityEventAsync(
-                                "SuspiciousUserAgent",
-                                $"Potentially malicious user agent detected: {suspiciousAgent}",
-                                $"Full UserAgent: {userAgent}, IP: {context.Connection.RemoteIpAddress}");
+                            await auditService.LogAsync("SuspiciousUserAgent", new
+                                {
+                                    message = $"Potentially malicious user agent detected: {suspiciousAgent}",
+                                    userAgent,
+                                    ip = context.Connection.RemoteIpAddress?.ToString()
+                                });
                         }
                         catch (Exception ex)
                         {
@@ -126,10 +131,12 @@ namespace dizparc_elevate.Middleware
                 {
                     try
                     {
-                        await auditService.LogSecurityEventAsync(
-                            "LargeRequest",
-                            "Request size exceeds normal limits",
-                            $"ContentLength: {request.ContentLength}, Path: {request.Path}");
+                        await auditService.LogAsync("LargeRequest", new
+                            {
+                                message = "Request size exceeds normal limits",
+                                contentLength = request.ContentLength,
+                                path = request.Path.ToString()
+                            });
                     }
                     catch (Exception ex)
                     {
@@ -222,10 +229,12 @@ namespace dizparc_elevate.Middleware
                 _logger.LogWarning("Access denied for IP: {ClientIP}", clientIP);
 
                 var auditService = context.RequestServices.GetRequiredService<IAuditService>();
-                await auditService.LogSecurityEventAsync(
-                    "UnauthorizedIPAccess",
-                    "Access attempt from non-whitelisted IP",
-                    $"IP: {clientIP}, Path: {context.Request.Path}");
+                await auditService.LogAsync("UnauthorizedIPAccess", new
+                    {
+                        message = "Access attempt from non-whitelisted IP",
+                        ip = clientIP,
+                        path = context.Request.Path.ToString()
+                    });
 
                 context.Response.StatusCode = 403; // Forbidden
                 await context.Response.WriteAsync("Access denied");

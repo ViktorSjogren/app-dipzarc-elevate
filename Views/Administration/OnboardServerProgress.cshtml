@@ -1,0 +1,186 @@
+@model dizparc_elevate.Models.securitySolutionsCommon.ElevateAdServersWithOnboardingStatusView
+
+@{
+    ViewData["Title"] = "Server Onboarding - Manual Steps";
+    Layout = "_Layout";
+}
+
+<div class="page-wrapper-fixed">
+    @await Html.PartialAsync("_CustomerSwitcher")
+    <div class="page-content-section" style="padding-top: 56px; height: calc(100vh - 56px);">
+        <div class="container-fluid h-100">
+            <div class="row justify-content-center align-items-center h-100">
+                <div class="col-md-8 col-lg-6">
+                    <div class="card" style="background: rgba(32, 59, 70, 0.95); border: 2px solid var(--color-primary-dark); box-shadow: 0 10px 30px rgba(0,0,0,0.5);">
+                        <div class="card-header" style="background: linear-gradient(135deg, var(--color-primary-dark) 0%, var(--color-secondary-dark) 100%); border-bottom: 2px solid var(--color-primary-dark);">
+                            <div class="d-flex justify-content-between align-items-center">
+                                <h4 class="text-white mb-0">
+                                    <i class="fas fa-tasks me-2 text-info"></i>
+                                    Manual Onboarding Steps
+                                </h4>
+                                <span class="badge bg-info">
+                                    <i class="fas fa-clock me-1"></i>In Progress
+                                </span>
+                            </div>
+                        </div>
+                        <div class="card-body p-4">
+                            <div class="mb-4 p-3" style="background: rgba(255,255,255,0.05); border-radius: 8px; border: 1px solid rgba(255,255,255,0.1);">
+                                <div class="d-flex align-items-center">
+                                    <i class="fas fa-server me-3 text-primary" style="font-size: 1.5rem;"></i>
+                                    <div>
+                                        <span class="text-primary-light opacity-70 small">Server Name</span>
+                                        <h5 class="text-white mb-0">@Model.ServerName</h5>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="mb-4">
+                                <div class="d-flex justify-content-between text-primary-light small mb-2">
+                                    <span>Onboarding Progress</span>
+                                    <span id="progressText">0 of 5 steps completed</span>
+                                </div>
+                                <div class="progress" style="height: 8px; background: rgba(255,255,255,0.1);">
+                                    <div class="progress-bar bg-success" id="progressBar" role="progressbar" style="width: 0%"></div>
+                                </div>
+                            </div>
+
+                            <div id="errorAlert" class="alert d-none" style="background: rgba(220, 53, 69, 0.1); border: 1px solid rgba(220, 53, 69, 0.3); color: #f8d7da;">
+                                <i class="fas fa-exclamation-triangle me-2"></i>
+                                <span id="errorMessage"></span>
+                            </div>
+
+                            <div id="successAlert" class="alert d-none" style="background: rgba(25, 135, 84, 0.1); border: 1px solid rgba(25, 135, 84, 0.3); color: #d1e7dd;">
+                                <i class="fas fa-check-circle me-2"></i>
+                                <span id="successMessage"></span>
+                            </div>
+
+                            <div class="mb-4">
+                                <h6 class="text-primary-light mb-3">
+                                    <i class="fas fa-terminal me-2"></i>
+                                    Add the device group to local administrators:
+                                </h6>
+                                <div class="p-3" style="background: rgba(0,0,0,0.4); border-radius: 8px; border: 1px solid rgba(255,255,255,0.15); position: relative;">
+                                    <code id="psCommand" class="text-info" style="font-size: 0.85rem; word-break: break-all;">Add-LocalGroupMember -Group "Administrators" -Member "elevate_@(Model.ServerName)"</code>
+                                    <button class="btn btn-sm btn-outline-info position-absolute" id="copyBtn" style="top: 8px; right: 8px; font-size: 1rem; padding: 0.3rem 0.6rem;" title="Copy to clipboard">
+                                        <i class="fas fa-copy"></i>
+                                    </button>
+                                </div>
+                                <small class="text-primary-light opacity-70 mt-2 d-block">
+                                    Run this command on <strong class="text-white">@Model.ServerName</strong> as an administrator.
+                                </small>
+                            </div>
+
+                            <div class="mb-4">
+                                <h6 class="text-primary-light mb-3">
+                                    <i class="fas fa-clipboard-check me-2"></i>
+                                    Complete the following steps:
+                                </h6>
+                                <div class="list-group" style="background: transparent;">
+                                    <label class="list-group-item d-flex align-items-start" style="background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.1); cursor: pointer;">
+                                        <input class="form-check-input me-3 mt-1 step-checkbox" type="checkbox" id="step1" style="min-width: 20px;">
+                                        <div>
+                                            <div class="text-white fw-bold">Verify Device Group Membership</div>
+                                            <small class="text-primary-light opacity-70">
+                                                Confirm that the group <strong>elevate_@(Model.ServerName)</strong> has been added to the local administrators group on the server.
+                                            </small>
+                                        </div>
+                                    </label>
+                                </div>
+                            </div>
+
+                            <form id="completeForm">
+                                @Html.AntiForgeryToken()
+                                <input type="hidden" id="serverName" value="@Model.ServerName" />
+                                <div class="d-flex justify-content-between mt-4">
+                                    <a href="@Url.Action("OnboardedServers", "Administration")" class="btn btn-outline-secondary">
+                                        <i class="fas fa-arrow-left me-1"></i>Back to Servers
+                                    </a>
+                                    <button type="button" class="btn btn-success" id="completeBtn" disabled>
+                                        <i class="fas fa-check-circle me-1"></i>Onboard
+                                    </button>
+                                </div>
+                            </form>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        const checkboxes = document.querySelectorAll('.step-checkbox');
+        const completeBtn = document.getElementById('completeBtn');
+        const progressBar = document.getElementById('progressBar');
+        const progressText = document.getElementById('progressText');
+        const errorAlert = document.getElementById('errorAlert');
+        const errorMessage = document.getElementById('errorMessage');
+        const successAlert = document.getElementById('successAlert');
+        const successMessage = document.getElementById('successMessage');
+        const serverName = document.getElementById('serverName').value;
+        const totalSteps = checkboxes.length;
+
+        function updateProgress() {
+            const checkedCount = document.querySelectorAll('.step-checkbox:checked').length;
+            const percentage = (checkedCount / totalSteps) * 100;
+            progressBar.style.width = percentage + '%';
+            progressText.textContent = `${checkedCount} of ${totalSteps} steps completed`;
+            completeBtn.disabled = checkedCount !== totalSteps;
+            if (checkedCount === totalSteps) {
+                completeBtn.classList.remove('btn-secondary');
+                completeBtn.classList.add('btn-success');
+            } else {
+                completeBtn.classList.remove('btn-success');
+                completeBtn.classList.add('btn-secondary');
+            }
+        }
+
+        checkboxes.forEach(checkbox => { checkbox.addEventListener('change', updateProgress); });
+
+        completeBtn.addEventListener('click', async function() {
+            errorAlert.classList.add('d-none');
+            successAlert.classList.add('d-none');
+            completeBtn.disabled = true;
+            completeBtn.innerHTML = '<i class="fas fa-spinner fa-spin me-1"></i>Completing...';
+            try {
+                const token = document.querySelector('input[name="__RequestVerificationToken"]').value;
+                const response = await fetch('@Url.Action("CompleteServerOnboarding", "Administration")', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+                    body: `serverName=${encodeURIComponent(serverName)}&__RequestVerificationToken=${encodeURIComponent(token)}`
+                });
+                const result = await response.json();
+                if (result.success) {
+                    successAlert.classList.remove('d-none');
+                    successMessage.textContent = result.message + ' Redirecting...';
+                    setTimeout(() => { window.location.href = '@Url.Action("OnboardedServers", "Administration")'; }, 1500);
+                } else {
+                    errorAlert.classList.remove('d-none');
+                    errorMessage.textContent = result.error || 'An error occurred.';
+                    resetButton();
+                }
+            } catch (error) {
+                errorAlert.classList.remove('d-none');
+                errorMessage.textContent = 'A network error occurred. Please try again.';
+                resetButton();
+            }
+        });
+
+        function resetButton() {
+            completeBtn.disabled = false;
+            completeBtn.innerHTML = '<i class="fas fa-check-circle me-1"></i>Onboard';
+            updateProgress();
+        }
+
+        document.getElementById('copyBtn').addEventListener('click', function() {
+            const command = document.getElementById('psCommand').textContent;
+            navigator.clipboard.writeText(command).then(() => {
+                this.innerHTML = '<i class="fas fa-check"></i>';
+                setTimeout(() => { this.innerHTML = '<i class="fas fa-copy"></i>'; }, 1500);
+            });
+        });
+
+        updateProgress();
+    });
+</script>

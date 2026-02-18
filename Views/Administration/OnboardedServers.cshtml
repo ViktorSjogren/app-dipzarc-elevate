@@ -1,0 +1,353 @@
+@model IEnumerable<dizparc_elevate.Models.securitySolutionsCommon.ElevateAdServersWithOnboardingStatusView>
+
+@{
+    ViewData["Title"] = "Onboarded Servers";
+    Layout = "_Layout";
+    var tierLookup = ViewBag.TierDisplayLookup as Dictionary<string, string> ?? new Dictionary<string, string>();
+}
+
+@Html.AntiForgeryToken()
+
+<div class="page-wrapper-fixed">
+    @await Html.PartialAsync("_CustomerSwitcher")
+    <!-- Content Section with Blade Layout (Full Height) -->
+    <div class="page-content-section" style="padding-top: 56px; height: calc(100vh - 56px);">
+        <div class="layout-with-blade" style="height: 100%;">
+            <!-- Left Blade (25%) -->
+            <div class="layout-blade" style="height: 100%;">
+                <div class="blade-container" style="background: linear-gradient(180deg, rgba(32, 59, 70, 0.98) 0%, rgba(32, 59, 70, 0.92) 100%); border-right: 3px solid var(--color-primary-dark); box-shadow: 2px 0 10px rgba(0,0,0,0.3); height: 100%; display: flex; flex-direction: column; overflow: hidden;">
+                    <!-- Title Header -->
+                    <div class="blade-header" style="padding: 1.5rem 1rem; margin-bottom: 0.75rem; border-bottom: 2px solid var(--color-primary-dark); background: rgba(0,0,0,0.3); flex-shrink: 0;">
+                        <h3 class="mb-1 text-primary-light">
+                            <i class="fas fa-server me-2" style="color: var(--color-warning);"></i>
+                            Onboarded Servers
+                        </h3>
+                        <h6 class="mb-0 text-primary-light opacity-70">
+                            <i class="fas fa-filter me-2"></i>
+                            Filters & Search
+                        </h6>
+                    </div>
+
+                    <!-- Scrollable Content Area -->
+                    <div style="flex: 1; overflow-y: auto; padding-bottom: 2rem;">
+                        <!-- Action Buttons -->
+                        <div class="blade-section" style="padding: 0.75rem 1rem; margin-bottom: 0.75rem;">
+                            <button class="btn btn-primary btn-sm w-100 mb-2" id="applyFilters" style="font-size: 0.8rem; padding: 0.5rem;">
+                                <i class="fas fa-check me-1"></i>Apply Filters
+                            </button>
+                            <button class="btn btn-primary btn-sm w-100 mb-2" id="clearFilters" style="font-size: 0.8rem; padding: 0.5rem;">
+                                <i class="fas fa-times me-1"></i>Clear All
+                            </button>
+                            <a href="@Url.Action("Index", "Administration")" class="btn btn-outline-secondary btn-sm w-100" style="font-size: 0.8rem; padding: 0.5rem;">
+                                <i class="fas fa-arrow-left me-1"></i>Back to Admin
+                            </a>
+                        </div>
+
+                        <!-- Search Filter -->
+                        <div class="blade-section" style="padding: 0.75rem 1rem; margin-bottom: 0.75rem; background: rgba(255,255,255,0.03); border-radius: 8px;">
+                            <div class="blade-section-title text-primary-light" style="font-size: 0.75rem; margin-bottom: 0.5rem; opacity: 0.8;">SEARCH</div>
+                            <div class="filter-group" style="margin-bottom: 0;">
+                                <input type="text" class="form-control form-control-sm" id="searchServer" placeholder="Search by server name..." style="background: rgba(255,255,255,0.08); border: 1px solid rgba(255,255,255,0.15); color: white;">
+                            </div>
+                        </div>
+
+                        <!-- Status Filter -->
+                        <div class="blade-section" style="padding: 0.75rem 1rem; margin-bottom: 0.75rem; background: rgba(255,255,255,0.03); border-radius: 8px;">
+                            <div class="blade-section-title text-primary-light" style="font-size: 0.75rem; margin-bottom: 0.5rem; opacity: 0.8;">STATUS</div>
+                            <div class="filter-group" style="margin-bottom: 0;">
+                                <div class="form-check" style="margin-bottom: 0.25rem;">
+                                    <input class="form-check-input" type="checkbox" value="1" id="filterActive" checked>
+                                    <label class="form-check-label text-primary-light" for="filterActive" style="font-size: 0.875rem;">
+                                        <i class="fas fa-check-circle me-1 text-success"></i>Active
+                                    </label>
+                                </div>
+                                <div class="form-check" style="margin-bottom: 0;">
+                                    <input class="form-check-input" type="checkbox" value="0" id="filterInactive" checked>
+                                    <label class="form-check-label text-primary-light" for="filterInactive" style="font-size: 0.875rem;">
+                                        <i class="fas fa-times-circle me-1 text-secondary"></i>Inactive
+                                    </label>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Onboarded Filter -->
+                        <div class="blade-section" style="padding: 0.75rem 1rem; margin-bottom: 0.75rem; background: rgba(255,255,255,0.03); border-radius: 8px;">
+                            <div class="blade-section-title text-primary-light" style="font-size: 0.75rem; margin-bottom: 0.5rem; opacity: 0.8;">ONBOARDING STATUS</div>
+                            <div class="filter-group" style="margin-bottom: 0;">
+                                <div class="form-check" style="margin-bottom: 0.25rem;">
+                                    <input class="form-check-input" type="checkbox" value="1" id="filterOnboarded" checked>
+                                    <label class="form-check-label text-primary-light" for="filterOnboarded" style="font-size: 0.875rem;">
+                                        <i class="fas fa-check me-1 text-success"></i>Onboarded
+                                    </label>
+                                </div>
+                                <div class="form-check" style="margin-bottom: 0.25rem;">
+                                    <input class="form-check-input" type="checkbox" value="2" id="filterInProgress" checked>
+                                    <label class="form-check-label text-primary-light" for="filterInProgress" style="font-size: 0.875rem;">
+                                        <i class="fas fa-tasks me-1 text-info"></i>In Progress
+                                    </label>
+                                </div>
+                                <div class="form-check" style="margin-bottom: 0.25rem;">
+                                    <input class="form-check-input" type="checkbox" value="3" id="filterStarted" checked>
+                                    <label class="form-check-label text-primary-light" for="filterStarted" style="font-size: 0.875rem;">
+                                        <i class="fas fa-spinner me-1 text-primary"></i>Started
+                                    </label>
+                                </div>
+                                <div class="form-check" style="margin-bottom: 0;">
+                                    <input class="form-check-input" type="checkbox" value="0" id="filterPending" checked>
+                                    <label class="form-check-label text-primary-light" for="filterPending" style="font-size: 0.875rem;">
+                                        <i class="fas fa-clock me-1 text-warning"></i>Not Started
+                                    </label>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Summary Stats -->
+                        <div class="blade-section" style="padding: 0.75rem 1rem; margin-bottom: 0.75rem; background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.1); border-radius: 8px;">
+                            <div class="blade-section-title text-primary-light mb-2" style="font-size: 0.75rem; opacity: 0.8;">SUMMARY</div>
+                            @if (Model != null && Model.Any())
+                            {
+                                <div class="text-primary-light" style="font-size: 0.875rem;">
+                                    <div class="d-flex justify-content-between mb-1">
+                                        <span style="opacity: 0.8;">Total:</span>
+                                        <span class="fw-bold">@Model.Count()</span>
+                                    </div>
+                                    <div class="d-flex justify-content-between mb-1">
+                                        <span style="opacity: 0.8;">Active:</span>
+                                        <span class="fw-bold text-success">@Model.Count(s => s.Active == 1)</span>
+                                    </div>
+                                    <div class="d-flex justify-content-between mb-1">
+                                        <span style="opacity: 0.8;">Onboarded:</span>
+                                        <span class="fw-bold text-success">@Model.Count(s => s.OnboardingStatus == 1)</span>
+                                    </div>
+                                    <div class="d-flex justify-content-between mb-1">
+                                        <span style="opacity: 0.8;">In Progress:</span>
+                                        <span class="fw-bold text-info">@Model.Count(s => s.OnboardingStatus == 2)</span>
+                                    </div>
+                                    <div class="d-flex justify-content-between">
+                                        <span style="opacity: 0.8;">Not Started:</span>
+                                        <span class="fw-bold text-warning">@Model.Count(s => s.OnboardingStatus == 0)</span>
+                                    </div>
+                                </div>
+                            }
+                            else
+                            {
+                                <small class="text-primary-light" style="opacity: 0.8;">No data available</small>
+                            }
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Right Main Content (75%) -->
+            <div class="layout-main" style="padding: 0; display: flex; flex-direction: column; height: 100%;">
+                @if (Model != null && Model.Any())
+                {
+                    <div style="overflow-y: auto; flex: 1; height: 100%; padding: 0;">
+                        <table class="table table-striped table-hover mb-0" style="margin: 0;">
+                            <thead class="table-header-gradient position-sticky" style="top: 0; z-index: 10; background: linear-gradient(135deg, var(--color-primary-dark) 0%, var(--color-secondary-dark) 100%);">
+                                <tr>
+                                    <th style="padding: 0.5rem;">Server Name</th>
+                                    <th style="padding: 0.5rem;">Status</th>
+                                    <th style="padding: 0.5rem;">Tier</th>
+                                    <th style="padding: 0.5rem;">Onboarding</th>
+                                    <th style="padding: 0.5rem;">Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                @foreach (var server in Model)
+                                {
+                                    <tr class="server-row"
+                                        data-servername="@server.ServerName?.ToLower()"
+                                        data-status="@server.Active"
+                                        data-onboarded="@server.OnboardingStatus">
+                                        <td style="padding: 0.4rem 0.5rem;">
+                                            <i class="fas fa-server me-1 icon-secondary" style="font-size: 0.8rem;"></i>
+                                            <strong style="font-size: 0.875rem;">@server.ServerName</strong>
+                                        </td>
+                                        <td style="padding: 0.4rem 0.5rem;">
+                                            @if (server.Active == 1)
+                                            {
+                                                <span class="badge bg-success" style="font-size: 0.75rem; padding: 0.25rem 0.5rem;">
+                                                    <i class="fas fa-check-circle me-1"></i>Active
+                                                </span>
+                                            }
+                                            else
+                                            {
+                                                <span class="badge bg-secondary" style="font-size: 0.75rem; padding: 0.25rem 0.5rem;">
+                                                    <i class="fas fa-times-circle me-1"></i>Inactive
+                                                </span>
+                                            }
+                                        </td>
+                                        <td style="padding: 0.4rem 0.5rem;">
+                                            @if (!string.IsNullOrEmpty(server.Tier))
+                                            {
+                                                <span class="badge bg-primary" style="font-size: 0.75rem; padding: 0.25rem 0.5rem;">@(tierLookup.ContainsKey(server.Tier) ? tierLookup[server.Tier] : server.Tier)</span>
+                                            }
+                                            else
+                                            {
+                                                <span class="text-muted" style="font-size: 0.75rem;">-</span>
+                                            }
+                                        </td>
+                                        <td style="padding: 0.4rem 0.5rem;">
+                                            @switch (server.OnboardingStatus)
+                                            {
+                                                case 1:
+                                                    <span class="badge bg-success" style="font-size: 0.75rem; padding: 0.25rem 0.5rem;">
+                                                        <i class="fas fa-check me-1"></i>Complete
+                                                    </span>
+                                                    break;
+                                                case 2:
+                                                    <span class="badge bg-info" style="font-size: 0.75rem; padding: 0.25rem 0.5rem;">
+                                                        <i class="fas fa-tasks me-1"></i>In Progress
+                                                    </span>
+                                                    break;
+                                                case 3:
+                                                    <span class="badge bg-primary" style="font-size: 0.75rem; padding: 0.25rem 0.5rem;">
+                                                        <i class="fas fa-spinner fa-spin me-1"></i>Started
+                                                    </span>
+                                                    break;
+                                                default:
+                                                    <span class="badge bg-warning text-dark" style="font-size: 0.75rem; padding: 0.25rem 0.5rem;">
+                                                        <i class="fas fa-clock me-1"></i>Not Started
+                                                    </span>
+                                                    break;
+                                            }
+                                        </td>
+                                        <td style="padding: 0.4rem 0.5rem;">
+                                            @switch (server.OnboardingStatus)
+                                            {
+                                                case 0:
+                                                    <a href="@Url.Action("OnboardServer", "Administration", new { serverName = server.ServerName })"
+                                                       class="btn btn-primary btn-sm" style="font-size: 0.75rem; padding: 0.2rem 0.5rem;">
+                                                        <i class="fas fa-play me-1"></i>Onboard
+                                                    </a>
+                                                    break;
+                                                case 2:
+                                                    <a href="@Url.Action("OnboardServerProgress", "Administration", new { serverName = server.ServerName })"
+                                                       class="btn btn-info btn-sm" style="font-size: 0.75rem; padding: 0.2rem 0.5rem;">
+                                                        <i class="fas fa-arrow-right me-1"></i>Continue
+                                                    </a>
+                                                    break;
+                                                case 3:
+                                                    <span class="badge bg-secondary me-1" style="font-size: 0.7rem;">
+                                                        <i class="fas fa-hourglass-half me-1"></i>Processing...
+                                                    </span>
+                                                    <button class="btn btn-outline-danger btn-sm cancel-onboarding-btn"
+                                                            data-server="@server.ServerName"
+                                                            style="font-size: 0.7rem; padding: 0.15rem 0.4rem;">
+                                                        <i class="fas fa-times me-1"></i>Cancel
+                                                    </button>
+                                                    break;
+                                                default:
+                                                    <span class="text-muted" style="font-size: 0.75rem;">-</span>
+                                                    break;
+                                            }
+                                        </td>
+                                    </tr>
+                                }
+                            </tbody>
+                        </table>
+                    </div>
+                }
+                else
+                {
+                    <div class="d-flex align-items-center justify-content-center h-100">
+                        <div class="alert alert-warning" role="alert">
+                            <i class="fas fa-exclamation-triangle me-2"></i>
+                            No servers have been onboarded yet.
+                        </div>
+                    </div>
+                }
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        const searchServer = document.getElementById('searchServer');
+        const filterActive = document.getElementById('filterActive');
+        const filterInactive = document.getElementById('filterInactive');
+        const filterOnboarded = document.getElementById('filterOnboarded');
+        const filterInProgress = document.getElementById('filterInProgress');
+        const filterStarted = document.getElementById('filterStarted');
+        const filterPending = document.getElementById('filterPending');
+        const applyBtn = document.getElementById('applyFilters');
+        const clearBtn = document.getElementById('clearFilters');
+
+        function applyFilters() {
+            const rows = document.querySelectorAll('.server-row');
+            const serverSearch = searchServer.value.toLowerCase();
+            const showActive = filterActive.checked;
+            const showInactive = filterInactive.checked;
+            const showOnboarded = filterOnboarded.checked;
+            const showInProgress = filterInProgress.checked;
+            const showStarted = filterStarted.checked;
+            const showPending = filterPending.checked;
+
+            rows.forEach(row => {
+                let show = true;
+                if (serverSearch && !row.dataset.servername.includes(serverSearch)) show = false;
+                const rowStatus = row.dataset.status;
+                if (rowStatus === '1' && !showActive) show = false;
+                if (rowStatus !== '1' && !showInactive) show = false;
+                const rowOnboarded = row.dataset.onboarded;
+                if (rowOnboarded === '0' && !showPending) show = false;
+                if (rowOnboarded === '1' && !showOnboarded) show = false;
+                if (rowOnboarded === '2' && !showInProgress) show = false;
+                if (rowOnboarded === '3' && !showStarted) show = false;
+                row.style.display = show ? '' : 'none';
+            });
+        }
+
+        function clearFilters() {
+            searchServer.value = '';
+            filterActive.checked = true;
+            filterInactive.checked = true;
+            filterOnboarded.checked = true;
+            filterInProgress.checked = true;
+            filterStarted.checked = true;
+            filterPending.checked = true;
+            applyFilters();
+        }
+
+        document.querySelectorAll('.cancel-onboarding-btn').forEach(btn => {
+            btn.addEventListener('click', async function() {
+                const serverName = this.dataset.server;
+                if (!confirm(`Cancel onboarding for ${serverName}? This will reset it to "Not Started" so you can retry.`)) return;
+                this.disabled = true;
+                this.innerHTML = '<i class="fas fa-spinner fa-spin"></i>';
+                try {
+                    const token = document.querySelector('input[name="__RequestVerificationToken"]').value;
+                    const response = await fetch('@Url.Action("CancelServerOnboarding", "Administration")', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+                        body: `serverName=${encodeURIComponent(serverName)}&__RequestVerificationToken=${encodeURIComponent(token)}`
+                    });
+                    const result = await response.json();
+                    if (result.success) {
+                        window.location.reload();
+                    } else {
+                        alert(result.error || 'Failed to cancel onboarding.');
+                        this.disabled = false;
+                        this.innerHTML = '<i class="fas fa-times me-1"></i>Cancel';
+                    }
+                } catch (error) {
+                    alert('A network error occurred.');
+                    this.disabled = false;
+                    this.innerHTML = '<i class="fas fa-times me-1"></i>Cancel';
+                }
+            });
+        });
+
+        applyBtn.addEventListener('click', applyFilters);
+        clearBtn.addEventListener('click', clearFilters);
+        searchServer.addEventListener('input', applyFilters);
+        filterActive.addEventListener('change', applyFilters);
+        filterInactive.addEventListener('change', applyFilters);
+        filterOnboarded.addEventListener('change', applyFilters);
+        filterInProgress.addEventListener('change', applyFilters);
+        filterStarted.addEventListener('change', applyFilters);
+        filterPending.addEventListener('change', applyFilters);
+    });
+</script>

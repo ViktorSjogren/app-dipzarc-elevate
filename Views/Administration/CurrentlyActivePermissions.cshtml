@@ -1,0 +1,168 @@
+@model IEnumerable<dizparc_elevate.Models.securitySolutionsCommon.ElevateActivePermission>
+
+@{
+    ViewData["Title"] = "Currently Active Permissions";
+    Layout = "_Layout";
+}
+
+<div class="page-wrapper-fixed">
+    @await Html.PartialAsync("_CustomerSwitcher")
+    <div class="page-content-section" style="padding-top: 6px; height: calc(100vh - 56px);">
+        <div class="layout-with-blade" style="height: 100%;">
+            <div class="layout-blade" style="height: 100%;">
+                <div class="blade-container" style="background: linear-gradient(180deg, rgba(32, 59, 70, 0.98) 0%, rgba(32, 59, 70, 0.92) 100%); border-right: 3px solid var(--color-primary-dark); box-shadow: 2px 0 10px rgba(0,0,0,0.3); height: 100%; display: flex; flex-direction: column; overflow: hidden;">
+                    <div class="blade-header" style="padding: .5rem 1rem; margin-bottom: 0.75rem; border-bottom: 2px solid var(--color-primary-dark); background: rgba(0,0,0,0.3); flex-shrink: 0;">
+                        <h3 class="mb-1 text-primary-light"><i class="fas fa-key me-2" style="color: var(--color-warning);"></i>Active Permissions</h3>
+                        <h6 class="mb-0 text-primary-light opacity-70"><i class="fas fa-filter me-2"></i>Filters & Search</h6>
+                    </div>
+                    <div style="flex: 1; overflow-y: auto; padding-bottom: 2rem;">
+                        <div class="blade-section" style="padding: 0.75rem 1rem; margin-bottom: 0.75rem;">
+                            <button class="btn btn-primary btn-sm w-100 mb-2" id="applyFilters" style="font-size: 0.8rem; padding: 0.5rem;"><i class="fas fa-check me-1"></i>Apply Filters</button>
+                            <button class="btn btn-primary btn-sm w-100 mb-2" id="clearFilters" style="font-size: 0.8rem; padding: 0.5rem;"><i class="fas fa-times me-1"></i>Clear All</button>
+                            <a href="@Url.Action("Index", "Administration")" class="btn btn-outline-secondary btn-sm w-100" style="font-size: 0.8rem; padding: 0.5rem;"><i class="fas fa-arrow-left me-1"></i>Back to Admin</a>
+                        </div>
+                        <div class="blade-section" style="padding: 0.75rem 1rem; margin-bottom: 0.75rem; background: rgba(255,255,255,0.03); border-radius: 8px;">
+                            <div class="blade-section-title text-primary-light" style="font-size: 0.75rem; margin-bottom: 0.5rem; opacity: 0.8;">SEARCH</div>
+                            <div class="filter-group" style="margin-bottom: 0.5rem;">
+                                <input type="text" class="form-control form-control-sm" id="searchUser" placeholder="Search by user..." style="background: rgba(255,255,255,0.08); border: 1px solid rgba(255,255,255,0.15); color: white;">
+                            </div>
+                            <div class="filter-group" style="margin-bottom: 0;">
+                                <input type="text" class="form-control form-control-sm" id="searchPermission" placeholder="Search by permission..." style="background: rgba(255,255,255,0.08); border: 1px solid rgba(255,255,255,0.15); color: white;">
+                            </div>
+                        </div>
+                        <div class="blade-section" style="padding: 0.75rem 1rem; margin-bottom: 0.75rem; background: rgba(255,255,255,0.03); border-radius: 8px;">
+                            <div class="blade-section-title text-primary-light" style="font-size: 0.75rem; margin-bottom: 0.5rem; opacity: 0.8;">PERMISSION TYPE</div>
+                            <div class="filter-group" style="margin-bottom: 0;">
+                                <div class="form-check" style="margin-bottom: 0.25rem;"><input class="form-check-input" type="checkbox" value="1" id="filterServer" checked><label class="form-check-label text-primary-light" for="filterServer" style="font-size: 0.875rem;"><i class="fas fa-server me-1 text-primary-light" style="opacity: 0.7;"></i>Server</label></div>
+                                <div class="form-check" style="margin-bottom: 0.25rem;"><input class="form-check-input" type="checkbox" value="2" id="filterRole" checked><label class="form-check-label text-primary-light" for="filterRole" style="font-size: 0.875rem;"><i class="fas fa-users me-1 text-primary-light" style="opacity: 0.7;"></i>Role</label></div>
+                                <div class="form-check" style="margin-bottom: 0;"><input class="form-check-input" type="checkbox" value="0" id="filterOther" checked><label class="form-check-label text-primary-light" for="filterOther" style="font-size: 0.875rem;"><i class="fas fa-question me-1 text-primary-light" style="opacity: 0.7;"></i>Other</label></div>
+                            </div>
+                        </div>
+                        <div class="blade-section" style="padding: 0.75rem 1rem; margin-bottom: 0.75rem; background: rgba(255,255,255,0.03); border-radius: 8px;">
+                            <div class="blade-section-title text-primary-light" style="font-size: 0.75rem; margin-bottom: 0.5rem; opacity: 0.8;">STATUS</div>
+                            <div class="filter-group" style="margin-bottom: 0;">
+                                <div class="form-check" style="margin-bottom: 0.25rem;"><input class="form-check-input" type="checkbox" value="true" id="filterActive" checked><label class="form-check-label text-primary-light" for="filterActive" style="font-size: 0.875rem;"><i class="fas fa-check-circle me-1 text-success"></i>Active</label></div>
+                                <div class="form-check" style="margin-bottom: 0;"><input class="form-check-input" type="checkbox" value="false" id="filterInactive" checked><label class="form-check-label text-primary-light" for="filterInactive" style="font-size: 0.875rem;"><i class="fas fa-times-circle me-1 text-secondary"></i>Inactive</label></div>
+                            </div>
+                        </div>
+                        <div class="blade-section" style="padding: 0.75rem 1rem; margin-bottom: 0.75rem; background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.1); border-radius: 8px;">
+                            <div class="blade-section-title text-primary-light mb-2" style="font-size: 0.75rem; opacity: 0.8;">SUMMARY</div>
+                            @if (Model != null && Model.Any())
+                            {
+                                <div class="text-primary-light" style="font-size: 0.875rem;">
+                                    <div class="d-flex justify-content-between mb-1"><span style="opacity: 0.8;">Total:</span><span class="fw-bold">@Model.Count()</span></div>
+                                    <div class="d-flex justify-content-between mb-1"><span style="opacity: 0.8;">Active:</span><span class="fw-bold text-success">@Model.Count(p => p.Active)</span></div>
+                                    <div class="d-flex justify-content-between"><span style="opacity: 0.8;">Inactive:</span><span class="fw-bold text-secondary">@Model.Count(p => !p.Active)</span></div>
+                                </div>
+                            }
+                            else { <small class="text-primary-light" style="opacity: 0.8;">No data available</small> }
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="layout-main" style="padding: 0; display: flex; flex-direction: column; height: 100%;">
+                @if (Model != null && Model.Any())
+                {
+                    <div style="overflow-y: auto; flex: 1; height: 100%; padding: 0;">
+                        <table class="table table-striped table-hover mb-0" style="margin: 0;">
+                            <thead class="table-header-gradient position-sticky" style="top: 0; z-index: 10; background: linear-gradient(135deg, var(--color-primary-dark) 0%, var(--color-secondary-dark) 100%);">
+                                <tr>
+                                    <th style="padding: 0.5rem;">User Name</th>
+                                    <th style="padding: 0.5rem;">Permission Type</th>
+                                    <th style="padding: 0.5rem;">Permission</th>
+                                    <th style="padding: 0.5rem;">Granted</th>
+                                    <th style="padding: 0.5rem;">Granted By</th>
+                                    <th style="padding: 0.5rem;">Last Updated</th>
+                                    <th style="padding: 0.5rem;">Status</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                @foreach (var permission in Model)
+                                {
+                                    <tr class="permission-row" data-username="@permission.UserName?.ToLower()" data-permission="@permission.Permission?.ToLower()" data-type="@permission.PermissionType" data-status="@permission.Active.ToString().ToLower()">
+                                        <td style="padding: 0.4rem 0.5rem;"><i class="fas fa-user me-1 icon-primary" style="font-size: 0.8rem;"></i><strong style="font-size: 0.875rem;">@permission.UserName</strong></td>
+                                        <td style="padding: 0.4rem 0.5rem;">
+                                            @if (permission.PermissionType == 1) { <span class="badge bg-primary" style="font-size: 0.75rem; padding: 0.25rem 0.5rem;"><i class="fas fa-users me-1"></i>AD Role</span> }
+                                            else if (permission.PermissionType == 2) { <span class="badge bg-primary" style="font-size: 0.75rem; padding: 0.25rem 0.5rem;"><i class="fas fa-users me-1"></i>AD Group</span> }
+                                            else if (permission.PermissionType == 3) { <span class="badge bg-primary" style="font-size: 0.75rem; padding: 0.25rem 0.5rem;"><i class="fas fa-server me-1"></i>Server</span> }
+                                            else { <span class="badge bg-primary" style="font-size: 0.75rem; padding: 0.25rem 0.5rem;"><i class="fas fa-question me-1"></i>Other</span> }
+                                        </td>
+                                        <td style="padding: 0.4rem 0.5rem;"><code style="font-size: 0.8rem;">@permission.Permission</code></td>
+                                        <td style="padding: 0.4rem 0.5rem;">
+                                            @if (permission.Created.HasValue) { <small style="font-size: 0.8rem;">@permission.Created.Value.ToString("yyyy-MM-dd HH:mm")</small> }
+                                            else { <small class="text-muted" style="font-size: 0.75rem;">N/A</small> }
+                                        </td>
+                                        <td style="padding: 0.4rem 0.5rem;"><small style="font-size: 0.8rem;">@permission.CreatedBy</small></td>
+                                        <td style="padding: 0.4rem 0.5rem;">
+                                            @if (permission.Updated.HasValue) { <small style="font-size: 0.8rem;">@permission.Updated.Value.ToString("yyyy-MM-dd HH:mm")</small> }
+                                            else { <small class="text-muted" style="font-size: 0.75rem;">N/A</small> }
+                                        </td>
+                                        <td style="padding: 0.4rem 0.5rem;">
+                                            @if (permission.Active) { <span class="badge bg-success" style="font-size: 0.75rem; padding: 0.25rem 0.5rem;"><i class="fas fa-check-circle me-1"></i>Active</span> }
+                                            else { <span class="badge bg-secondary" style="font-size: 0.75rem; padding: 0.25rem 0.5rem;"><i class="fas fa-times-circle me-1"></i>Inactive</span> }
+                                        </td>
+                                    </tr>
+                                }
+                            </tbody>
+                        </table>
+                    </div>
+                }
+                else
+                {
+                    <div class="d-flex align-items-center justify-content-center h-100">
+                        <div class="alert alert-warning" role="alert"><i class="fas fa-exclamation-triangle me-2"></i>No active permissions found.</div>
+                    </div>
+                }
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        const searchUser = document.getElementById('searchUser');
+        const searchPermission = document.getElementById('searchPermission');
+        const filterServer = document.getElementById('filterServer');
+        const filterRole = document.getElementById('filterRole');
+        const filterOther = document.getElementById('filterOther');
+        const filterActive = document.getElementById('filterActive');
+        const filterInactive = document.getElementById('filterInactive');
+        const applyBtn = document.getElementById('applyFilters');
+        const clearBtn = document.getElementById('clearFilters');
+
+        function applyFilters() {
+            const rows = document.querySelectorAll('.permission-row');
+            const userSearch = searchUser.value.toLowerCase();
+            const permissionSearch = searchPermission.value.toLowerCase();
+            const showServer = filterServer.checked;
+            const showRole = filterRole.checked;
+            const showOther = filterOther.checked;
+            const showActive = filterActive.checked;
+            const showInactive = filterInactive.checked;
+            rows.forEach(row => {
+                let show = true;
+                if (userSearch && !row.dataset.username.includes(userSearch)) show = false;
+                if (permissionSearch && !row.dataset.permission.includes(permissionSearch)) show = false;
+                const rowType = row.dataset.type;
+                if (rowType === '1' && !showServer) show = false;
+                if (rowType === '2' && !showRole) show = false;
+                if (rowType !== '1' && rowType !== '2' && !showOther) show = false;
+                const rowStatus = row.dataset.status;
+                if (rowStatus === 'true' && !showActive) show = false;
+                if (rowStatus === 'false' && !showInactive) show = false;
+                row.style.display = show ? '' : 'none';
+            });
+        }
+        function clearFilters() { searchUser.value = ''; searchPermission.value = ''; filterServer.checked = true; filterRole.checked = true; filterOther.checked = true; filterActive.checked = true; filterInactive.checked = true; applyFilters(); }
+        applyBtn.addEventListener('click', applyFilters);
+        clearBtn.addEventListener('click', clearFilters);
+        searchUser.addEventListener('input', applyFilters);
+        searchPermission.addEventListener('input', applyFilters);
+        filterServer.addEventListener('change', applyFilters);
+        filterRole.addEventListener('change', applyFilters);
+        filterOther.addEventListener('change', applyFilters);
+        filterActive.addEventListener('change', applyFilters);
+        filterInactive.addEventListener('change', applyFilters);
+    });
+</script>

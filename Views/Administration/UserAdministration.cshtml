@@ -1,0 +1,277 @@
+@model IEnumerable<dizparc_elevate.Models.securitySolutionsCommon.ElevateUser>
+
+@{
+    ViewData["Title"] = "User Administration";
+    Layout = "_Layout";
+}
+
+<div class="page-wrapper-fixed">
+    @await Html.PartialAsync("_CustomerSwitcher")
+    <div class="page-content-section" style="padding-top: 6px; height: calc(100vh - 56px);">
+        <div class="layout-with-blade" style="height: 100%;">
+            <!-- Left Blade (25%) -->
+            <div class="layout-blade" style="height: 100%;">
+                <div class="blade-container" style="background: linear-gradient(180deg, rgba(32, 59, 70, 0.98) 0%, rgba(32, 59, 70, 0.92) 100%); border-right: 3px solid var(--color-primary-dark); box-shadow: 2px 0 10px rgba(0,0,0,0.3); height: 100%; display: flex; flex-direction: column; overflow: hidden;">
+                    <div class="blade-header" style="padding: .5rem 1rem; margin-bottom: 0.75rem; border-bottom: 2px solid var(--color-primary-dark); background: rgba(0,0,0,0.3); flex-shrink: 0;">
+                        <h3 class="mb-1 text-primary-light">
+                            <i class="fas fa-users me-2" style="color: var(--color-warning);"></i>
+                            User Administration
+                        </h3>
+                        <h6 class="mb-0 text-primary-light opacity-70">
+                            <i class="fas fa-filter me-2"></i>
+                            Filters & Search
+                        </h6>
+                    </div>
+
+                    <div style="flex: 1; overflow-y: auto; padding-bottom: 2rem;">
+                        <div class="blade-section" style="padding: 0.75rem 1rem; margin-bottom: 0.75rem;">
+                            <a href="@Url.Action("CreateUser", "Administration")" class="btn btn-warning btn-sm w-100 mb-2" style="font-size: 0.8rem; padding: 0.5rem;">
+                                <i class="fas fa-plus me-1"></i>Add New User
+                            </a>
+                            <button class="btn btn-primary btn-sm w-100 mb-2" id="applyFilters" style="font-size: 0.8rem; padding: 0.5rem;">
+                                <i class="fas fa-check me-1"></i>Apply Filters
+                            </button>
+                            <button class="btn btn-primary btn-sm w-100 mb-2" id="clearFilters" style="font-size: 0.8rem; padding: 0.5rem;">
+                                <i class="fas fa-times me-1"></i>Clear All
+                            </button>
+                            <a href="@Url.Action("Index", "Administration")" class="btn btn-outline-secondary btn-sm w-100" style="font-size: 0.8rem; padding: 0.5rem;">
+                                <i class="fas fa-arrow-left me-1"></i>Back to Admin
+                            </a>
+                        </div>
+
+                        <div class="blade-section" style="padding: 0.75rem 1rem; margin-bottom: 0.75rem; background: rgba(255,255,255,0.03); border-radius: 8px;">
+                            <div class="blade-section-title text-primary-light" style="font-size: 0.75rem; margin-bottom: 0.5rem; opacity: 0.8;">SEARCH</div>
+                            <div class="filter-group" style="margin-bottom: 0.5rem;">
+                                <input type="text" class="form-control form-control-sm" id="searchUser" placeholder="Search by user..." style="background: rgba(255,255,255,0.08); border: 1px solid rgba(255,255,255,0.15); color: white;">
+                            </div>
+                            <div class="filter-group" style="margin-bottom: 0.5rem;">
+                                <input type="text" class="form-control form-control-sm" id="searchAccount" placeholder="Search by account..." style="background: rgba(255,255,255,0.08); border: 1px solid rgba(255,255,255,0.15); color: white;">
+                            </div>
+                            <div class="filter-group" style="margin-bottom: 0.5rem;">
+                                <input type="text" class="form-control form-control-sm" id="searchPhone" placeholder="Search by phone..." style="background: rgba(255,255,255,0.08); border: 1px solid rgba(255,255,255,0.15); color: white;">
+                            </div>
+                            <div class="filter-group" style="margin-bottom: 0.5rem;">
+                                @{
+                                    var tiers = ViewBag.AvailableTiers as List<dizparc_elevate.Models.securitySolutionsCommon.ElevateAvailableTier> ?? new List<dizparc_elevate.Models.securitySolutionsCommon.ElevateAvailableTier>();
+                                }
+                                <select class="form-control form-control-sm" id="filterTier" style="background: rgba(255,255,255,0.08); border: 1px solid rgba(255,255,255,0.15); color: white;">
+                                    <option value="">All Tiers</option>
+                                    @foreach (var tier in tiers)
+                                    {
+                                        <option value="@tier.TierName" style="background: #203b46;">@tier.DisplayName</option>
+                                    }
+                                </select>
+                            </div>
+                            <div class="filter-group" style="margin-bottom: 0;">
+                                <select class="form-control form-control-sm" id="filterStatus" style="background: rgba(255,255,255,0.08); border: 1px solid rgba(255,255,255,0.15); color: white;">
+                                    <option value="">All Status</option>
+                                    <option value="active">Active</option>
+                                    <option value="pending">Pending</option>
+                                    <option value="error">Error</option>
+                                </select>
+                            </div>
+                        </div>
+
+                        <div class="blade-section" style="padding: 0.75rem 1rem; margin-bottom: 0.75rem; background: rgba(255,255,255,0.03); border-radius: 8px;">
+                            <div class="blade-section-title text-primary-light" style="font-size: 0.75rem; margin-bottom: 0.5rem; opacity: 0.8;">DATE CREATED</div>
+                            <div class="filter-group" style="margin-bottom: 0.5rem;">
+                                <input type="date" class="form-control form-control-sm" id="dateFrom" style="background: rgba(255,255,255,0.08); border: 1px solid rgba(255,255,255,0.15); color: white;">
+                            </div>
+                            <div class="filter-group" style="margin-bottom: 0;">
+                                <input type="date" class="form-control form-control-sm" id="dateTo" style="background: rgba(255,255,255,0.08); border: 1px solid rgba(255,255,255,0.15); color: white;">
+                            </div>
+                        </div>
+
+                        <div class="blade-section" style="padding: 0.75rem 1rem; margin-bottom: 0.75rem; background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.1); border-radius: 8px;">
+                            <div class="blade-section-title text-primary-light mb-2" style="font-size: 0.75rem; opacity: 0.8;">SUMMARY</div>
+                            @if (Model != null && Model.Any())
+                            {
+                                <div class="text-primary-light" style="font-size: 0.875rem;">
+                                    <div class="d-flex justify-content-between mb-1"><span style="opacity: 0.8;">Total Users:</span><span class="fw-bold">@Model.Count()</span></div>
+                                    <div class="d-flex justify-content-between mb-1"><span style="opacity: 0.8;">Active:</span><span class="fw-bold text-success">@Model.Count(u => u.Status?.ToLower() == "active")</span></div>
+                                    <div class="d-flex justify-content-between mb-1"><span style="opacity: 0.8;">Pending:</span><span class="fw-bold text-warning">@Model.Count(u => u.Status?.ToLower() == "pending")</span></div>
+                                    <div class="d-flex justify-content-between"><span style="opacity: 0.8;">Error:</span><span class="fw-bold text-danger">@Model.Count(u => u.Status?.ToLower() == "error")</span></div>
+                                </div>
+                            }
+                            else
+                            {
+                                <small class="text-primary-light" style="opacity: 0.8;">No data available</small>
+                            }
+                        </div>
+
+                        <div class="blade-section" style="padding: 0.75rem 1rem; background: rgba(255,194,14,0.1); border: 1px solid rgba(255,194,14,0.2); border-radius: 8px;">
+                            <div class="text-primary-light" style="font-size: 0.75rem; opacity: 0.8;">
+                                <i class="fas fa-info-circle me-1 text-warning"></i>
+                                Click on user actions to manage permissions and tiers
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Right Main Content (75%) -->
+            <div class="layout-main" style="padding: 0; display: flex; flex-direction: column; height: 100%;">
+                @if (TempData["SuccessMessage"] != null)
+                {
+                    <div class="alert alert-success alert-dismissible fade show m-3" role="alert" style="background: rgba(25, 135, 84, 0.1); border: 1px solid rgba(25, 135, 84, 0.3);">
+                        <i class="fas fa-check-circle me-2"></i>
+                        @TempData["SuccessMessage"]
+                        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                    </div>
+                }
+
+                @if (Model != null && Model.Any())
+                {
+                    <div style="overflow-y: auto; flex: 1; height: 100%; padding: 0;">
+                        <table class="table table-striped table-hover mb-0" style="margin: 0;">
+                            <thead class="table-header-gradient position-sticky" style="top: 0; z-index: 10; background: linear-gradient(135deg, var(--color-primary-dark) 0%, var(--color-secondary-dark) 100%);">
+                                <tr>
+                                    <th style="padding: 0.5rem;">User Name</th>
+                                    <th style="padding: 0.5rem;">Elevate Account</th>
+                                    <th style="padding: 0.5rem;">Status</th>
+                                    <th style="padding: 0.5rem;">Tier</th>
+                                    <th style="padding: 0.5rem;">Phone Number</th>
+                                    <th style="padding: 0.5rem;">Created</th>
+                                    <th style="padding: 0.5rem;">Created By</th>
+                                    <th style="padding: 0.5rem;">Last Updated</th>
+                                    <th style="padding: 0.5rem;">Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                @foreach (var user in Model)
+                                {
+                                    <tr class="user-row"
+                                        data-username="@user.UserName?.ToLower()"
+                                        data-account="@user.ElevateAccount?.ToLower()"
+                                        data-phone="@user.PhoneNumber?.ToLower()"
+                                        data-tier="@user.TierNavigation?.TierName?.ToLower()"
+                                        data-status="@user.Status?.ToLower()"
+                                        data-created="@(user.Created.HasValue ? user.Created.Value.ToString("yyyy-MM-dd") : "")">
+                                        <td style="padding: 0.4rem 0.5rem;">
+                                            <i class="fas fa-user me-1 icon-primary" style="font-size: 0.8rem;"></i>
+                                            <strong style="font-size: 0.875rem;">@user.UserName</strong>
+                                        </td>
+                                        <td style="padding: 0.4rem 0.5rem;"><code style="font-size: 0.8rem;">@user.ElevateAccount</code></td>
+                                        <td style="padding: 0.4rem 0.5rem;">
+                                            @{
+                                                var statusClass = "secondary";
+                                                var statusIcon = "fa-circle";
+                                                var statusText = user.Status ?? "unknown";
+                                                switch(statusText.ToLower())
+                                                {
+                                                    case "active": statusClass = "success"; statusIcon = "fa-check-circle"; break;
+                                                    case "pending": statusClass = "warning"; statusIcon = "fa-clock"; break;
+                                                    case "error": statusClass = "danger"; statusIcon = "fa-exclamation-circle"; break;
+                                                    default: statusClass = "secondary"; statusIcon = "fa-question-circle"; break;
+                                                }
+                                            }
+                                            <span class="badge bg-@statusClass" style="font-size: 0.75rem;">
+                                                <i class="fas @statusIcon me-1" style="font-size: 0.65rem;"></i>@statusText.ToUpper()
+                                            </span>
+                                        </td>
+                                        <td style="padding: 0.4rem 0.5rem;">
+                                            <span class="badge bg-primary" style="font-size: 0.75rem;">@(user.TierNavigation?.DisplayName ?? "N/A")</span>
+                                        </td>
+                                        <td style="padding: 0.4rem 0.5rem;">
+                                            <i class="fas fa-phone me-1 icon-secondary" style="font-size: 0.75rem;"></i>
+                                            <span style="font-size: 0.875rem;">@user.PhoneNumber</span>
+                                        </td>
+                                        <td style="padding: 0.4rem 0.5rem;">
+                                            @if (user.Created.HasValue)
+                                            { <small style="font-size: 0.8rem;">@user.Created.Value.ToString("yyyy-MM-dd HH:mm")</small> }
+                                            else { <small class="text-muted" style="font-size: 0.75rem;">N/A</small> }
+                                        </td>
+                                        <td style="padding: 0.4rem 0.5rem;"><small style="font-size: 0.8rem;">@(user.CreatedBy ?? "N/A")</small></td>
+                                        <td style="padding: 0.4rem 0.5rem;">
+                                            @if (user.Updated.HasValue)
+                                            { <small style="font-size: 0.8rem;">@user.Updated.Value.ToString("yyyy-MM-dd HH:mm")</small> }
+                                            else { <small class="text-muted" style="font-size: 0.75rem;">N/A</small> }
+                                        </td>
+                                        <td style="padding: 0.4rem 0.5rem;">
+                                            <a href="@Url.Action("ManageUserPermissions", "Administration", new { id = user.ElevateUsersId })"
+                                               class="btn btn-primary btn-sm me-1" style="font-size: 0.75rem; padding: 0.2rem 0.5rem;">
+                                                <i class="fas fa-shield-alt me-1"></i>Permissions
+                                            </a>
+                                            <a href="@Url.Action("EditUser", "Administration", new { id = user.ElevateUsersId })"
+                                               class="btn btn-warning btn-sm" style="font-size: 0.75rem; padding: 0.2rem 0.5rem;">
+                                                <i class="fas fa-edit me-1"></i>Edit
+                                            </a>
+                                        </td>
+                                    </tr>
+                                }
+                            </tbody>
+                        </table>
+                    </div>
+                }
+                else
+                {
+                    <div class="d-flex align-items-center justify-content-center h-100">
+                        <div class="alert alert-warning" role="alert">
+                            <i class="fas fa-exclamation-triangle me-2"></i>
+                            No users found in the system.
+                        </div>
+                    </div>
+                }
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        const searchUser = document.getElementById('searchUser');
+        const searchAccount = document.getElementById('searchAccount');
+        const searchPhone = document.getElementById('searchPhone');
+        const filterTier = document.getElementById('filterTier');
+        const filterStatus = document.getElementById('filterStatus');
+        const dateFrom = document.getElementById('dateFrom');
+        const dateTo = document.getElementById('dateTo');
+        const applyBtn = document.getElementById('applyFilters');
+        const clearBtn = document.getElementById('clearFilters');
+
+        function applyFilters() {
+            const rows = document.querySelectorAll('.user-row');
+            const userSearch = searchUser.value.toLowerCase();
+            const accountSearch = searchAccount.value.toLowerCase();
+            const phoneSearch = searchPhone.value.toLowerCase();
+            const tierFilter = filterTier.value.toLowerCase();
+            const statusFilter = filterStatus.value.toLowerCase();
+            const fromDate = dateFrom.value;
+            const toDate = dateTo.value;
+
+            rows.forEach(row => {
+                let show = true;
+                if (userSearch && !row.dataset.username.includes(userSearch)) show = false;
+                if (accountSearch && !row.dataset.account.includes(accountSearch)) show = false;
+                if (phoneSearch && !row.dataset.phone.includes(phoneSearch)) show = false;
+                if (tierFilter && row.dataset.tier !== tierFilter) show = false;
+                if (statusFilter && row.dataset.status !== statusFilter) show = false;
+                const createdDate = row.dataset.created;
+                if (fromDate && createdDate && createdDate < fromDate) show = false;
+                if (toDate && createdDate && createdDate > toDate) show = false;
+                row.style.display = show ? '' : 'none';
+            });
+        }
+
+        function clearFilters() {
+            searchUser.value = '';
+            searchAccount.value = '';
+            searchPhone.value = '';
+            filterTier.value = '';
+            filterStatus.value = '';
+            dateFrom.value = '';
+            dateTo.value = '';
+            applyFilters();
+        }
+
+        applyBtn.addEventListener('click', applyFilters);
+        clearBtn.addEventListener('click', clearFilters);
+        searchUser.addEventListener('input', applyFilters);
+        searchAccount.addEventListener('input', applyFilters);
+        searchPhone.addEventListener('input', applyFilters);
+        filterTier.addEventListener('change', applyFilters);
+        filterStatus.addEventListener('change', applyFilters);
+        dateFrom.addEventListener('change', applyFilters);
+        dateTo.addEventListener('change', applyFilters);
+    });
+</script>

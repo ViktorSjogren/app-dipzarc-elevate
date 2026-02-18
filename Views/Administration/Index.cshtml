@@ -1,0 +1,137 @@
+@{
+    ViewData["Title"] = "Administration";
+    Layout = "_Layout";
+}
+
+<div class="text-center pt-8rem">
+    @await Html.PartialAsync("_CustomerSwitcher")
+
+    <h2 class="mb-5 text-primary-light">
+        <i class="fas fa-users-cog me-2 icon-secondary"></i>
+        Administration
+    </h2>
+
+    <div class="d-flex justify-content-center mt-5">
+        <div class="row justify-content-center max-w-1200">
+            <!-- Currently Active Permissions Card -->
+            <div class="col-md-6 col-lg-4 mb-4 min-w-350 max-w-400">
+                <div class="card h-100 pulse-glow card-gradient-light hover-lift">
+                    <div class="card-header text-center">
+                        <div class="position-relative">
+                            <i class="fas fa-key fa-3x mb-3 icon-warning"></i>
+                            <div class="circuit-line position-absolute bottom-0 left-25 right-25 h-1px"></div>
+                        </div>
+                        <h4 class="card-title mb-0">Active Permissions</h4>
+                    </div>
+                    <div class="card-body d-flex flex-column text-center">
+                        <p class="card-text flex-grow-1 mb-4 text-primary-dark line-height-1-6">
+                            View currently active unlocked permissions.
+                        </p>
+                        <a href="@Url.Action("CurrentlyActivePermissions", "Administration")" class="btn btn-warning btn-lg">
+                            <i class="fas fa-eye me-2"></i>
+                            View Permissions
+                        </a>
+                    </div>
+                </div>
+            </div>
+
+            <!-- User Permissions Card -->
+            <div class="col-md-6 col-lg-4 mb-4 min-w-350 max-w-400">
+                <div class="card h-100 pulse-glow card-gradient-light hover-lift">
+                    <div class="card-header text-center">
+                        <div class="position-relative">
+                            <i class="fas fa-user-shield fa-3x mb-3 icon-primary"></i>
+                            <div class="circuit-line position-absolute bottom-0 left-25 right-25 h-1px"></div>
+                        </div>
+                        <h4 class="card-title mb-0">User Permissions</h4>
+                    </div>
+                    <div class="card-body d-flex flex-column text-center">
+                        <p class="card-text flex-grow-1 mb-4 text-primary-dark line-height-1-6">
+                            View which users can access specific servers and roles in the system.
+                        </p>
+                        <a href="@Url.Action("UserPermissions", "Administration")" class="btn btn-primary btn-lg">
+                            <i class="fas fa-users-cog me-2"></i>
+                            View Permissions
+                        </a>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Alerts Card -->
+            <div class="col-md-6 col-lg-4 mb-4 min-w-350 max-w-400">
+                <div class="card h-100 pulse-glow card-gradient-light hover-lift">
+                    <div class="card-header text-center">
+                        <div class="position-relative">
+                            <i class="fas fa-bell fa-3x mb-3 icon-warning"></i>
+                            <div class="circuit-line position-absolute bottom-0 left-25 right-25 h-1px"></div>
+                        </div>
+                        <h4 class="card-title mb-0">System Alerts</h4>
+                    </div>
+                    <div class="card-body d-flex flex-column text-center">
+                        <p class="card-text flex-grow-1 mb-4 text-primary-dark line-height-1-6">
+                            Monitor alerts regarding access compliance and system alerts.
+                        </p>
+                        <a href="@Url.Action("Alerts", "Administration")" class="btn btn-primary btn-lg">
+                            <i class="fas fa-bell me-2"></i>
+                            View Alerts
+                        </a>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Onboarded Servers Card -->
+            <div class="col-md-6 col-lg-4 mb-4 min-w-350 max-w-400">
+                <div class="card h-100 pulse-glow card-gradient-light hover-lift">
+                    <div class="card-header text-center">
+                        <div class="position-relative">
+                            <i class="fas fa-server fa-3x mb-3 icon-secondary"></i>
+                            <div class="circuit-line position-absolute bottom-0 left-25 right-25 h-1px"></div>
+                        </div>
+                        <h4 class="card-title mb-0">Onboarded Servers</h4>
+                    </div>
+                    <div class="card-body d-flex flex-column text-center">
+                        <p class="card-text flex-grow-1 mb-4 text-primary-dark line-height-1-6">
+                            View and manage all servers that have been onboarded to the system.
+                        </p>
+                        <a href="@Url.Action("OnboardedServers", "Administration")" class="btn btn-primary btn-lg">
+                            <i class="fas fa-server me-2"></i>
+                            View Servers
+                        </a>
+                    </div>
+                </div>
+            </div>
+
+            <!-- User Administration Card -->
+            <div class="col-md-6 col-lg-4 mb-4 min-w-350 max-w-400">
+                <div class="card h-100 pulse-glow card-gradient-light hover-lift">
+                    <div class="card-header text-center">
+                        <div class="position-relative">
+                            <i class="fas fa-users fa-3x mb-3 icon-primary"></i>
+                            <div class="circuit-line position-absolute bottom-0 left-25 right-25 h-1px"></div>
+                        </div>
+                        <h4 class="card-title mb-0">User & Permission Administration</h4>
+                    </div>
+                    <div class="card-body d-flex flex-column text-center">
+                        <p class="card-text flex-grow-1 mb-4 text-primary-dark line-height-1-6">
+                            Manage user accounts and permissions.
+                        </p>
+                        <a href="@Url.Action("UserAdministration", "Administration")" class="btn btn-primary btn-lg">
+                            <i class="fas fa-user-cog me-2"></i>
+                            Manage Users
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Back to Home Button -->
+    <div class="row justify-content-center mt-5">
+        <div class="col-12 text-center">
+            <a href="@Url.Action("Index", "Home")" class="btn btn-outline-secondary btn-lg">
+                <i class="fas fa-arrow-left me-2"></i>
+                Back to Home
+            </a>
+        </div>
+    </div>
+</div>

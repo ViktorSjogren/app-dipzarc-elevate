@@ -1,103 +1,66 @@
-﻿using System.Security.Claims;
+using dizparc_elevate.Models.securitySolutionsCommon;
+using System.Text.Json;
 
 namespace dizparc_elevate.Services
 {
     public class AuditService : IAuditService
     {
-        private readonly ILogger<AuditService> _logger;
+        private readonly IServiceScopeFactory _scopeFactory;
         private readonly IHttpContextAccessor _httpContextAccessor;
+        private readonly ILogger<AuditService> _logger;
 
-        public AuditService(ILogger<AuditService> logger, IHttpContextAccessor httpContextAccessor)
+        private static readonly JsonSerializerOptions JsonOptions = new()
         {
-            _logger = logger;
+            PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
+            WriteIndented = false
+        };
+
+        public AuditService(IServiceScopeFactory scopeFactory, IHttpContextAccessor httpContextAccessor, ILogger<AuditService> logger)
+        {
+            _scopeFactory = scopeFactory;
             _httpContextAccessor = httpContextAccessor;
+            _logger = logger;
         }
 
-        public Task LogAsync(string action, string resource, bool success, string? details = null)
+        public async Task LogAsync(string action, object? eventData = null)
         {
-            var auditData = GetAuditContext();
-
-            _logger.LogInformation(
-                "AUDIT: {Action} on {Resource} by {User} from {IpAddress} was {Status}. " +
-                "SessionId: {SessionId}, UserAgent: {UserAgent}, Timestamp: {Timestamp}. Details: {Details}",
-                action,
-                resource,
-                auditData.UserName,
-                auditData.IpAddress,
-                success ? "Successful" : "Failed",
-                auditData.SessionId,
-                auditData.UserAgent,
-                DateTime.UtcNow,
-                details ?? "None");
-
-            return Task.CompletedTask;
-        }
-
-        public Task LogSecurityEventAsync(string eventType, string description, string? additionalData = null)
-        {
-            var auditData = GetAuditContext();
-
-            _logger.LogWarning(
-                "SECURITY_EVENT: {EventType} - {Description}. " +
-                "User: {User}, IP: {IpAddress}, SessionId: {SessionId}, " +
-                "UserAgent: {UserAgent}, Timestamp: {Timestamp}. Data: {AdditionalData}",
-                eventType,
-                description,
-                auditData.UserName,
-                auditData.IpAddress,
-                auditData.SessionId,
-                auditData.UserAgent,
-                DateTime.UtcNow,
-                additionalData ?? "None");
-
-            return Task.CompletedTask;
-        }
-
-        public Task LogPrivilegedActionAsync(string action, string targetResource, bool success, string? details = null)
-        {
-            var auditData = GetAuditContext();
-
-            _logger.LogCritical(
-                "PRIVILEGED_ACTION: {Action} on {TargetResource} by {User} from {IpAddress} was {Status}. " +
-                "SessionId: {SessionId}, UserAgent: {UserAgent}, Timestamp: {Timestamp}. " +
-                "TenantId: {TenantId}, Details: {Details}",
-                action,
-                targetResource,
-                auditData.UserName,
-                auditData.IpAddress,
-                success ? "Successful" : "Failed",
-                auditData.SessionId,
-                auditData.UserAgent,
-                DateTime.UtcNow,
-                auditData.TenantId,
-                details ?? "None");
-
-            return Task.CompletedTask;
-        }
-
-        private AuditContext GetAuditContext()
-        {
-            var httpContext = _httpContextAccessor.HttpContext;
-
-            return new AuditContext
+            string? eventJson = null;
+            try
             {
-                UserName = httpContext?.User?.Identity?.Name ?? "Anonymous",
-                IpAddress = httpContext?.Connection?.RemoteIpAddress?.ToString() ?? "Unknown",
-                UserAgent = httpContext?.Request?.Headers["User-Agent"].ToString() ?? "Unknown",
-                SessionId = httpContext?.Session?.Id ?? "No Session",
-                TenantId = httpContext?.Session?.GetString("UserTenantId") ?? "Unknown",
-                UserId = httpContext?.User?.FindFirst(ClaimTypes.NameIdentifier)?.Value ?? "Unknown"
-            };
-        }
-    }
+                var httpContext = _httpContextAccessor.HttpContext;
+                var userName = httpContext?.User?.Identity?.Name ?? "System";
 
-    public class AuditContext
-    {
-        public string UserName { get; set; } = string.Empty;
-        public string IpAddress { get; set; } = string.Empty;
-        public string UserAgent { get; set; } = string.Empty;
-        public string SessionId { get; set; } = string.Empty;
-        public string TenantId { get; set; } = string.Empty;
-        public string UserId { get; set; } = string.Empty;
+                var eventPayload = new
+                {
+                    action,
+                    data = eventData,
+                    ipAddress = httpContext?.Connection?.RemoteIpAddress?.ToString(),
+                    userAgent = httpContext?.Request?.Headers["User-Agent"].ToString(),
+                    sessionId = httpContext?.Session?.Id
+                };
+
+                eventJson = JsonSerializer.Serialize(eventPayload, JsonOptions);
+
+                using var scope = _scopeFactory.CreateScope();
+                var context = scope.ServiceProvider.GetRequiredService<Sqldb_securitySolutionsCommon>();
+
+                var auditLog = new ElevateAuditLog
+                {
+                    Event = eventJson,
+                    Created = DateTime.UtcNow,
+                    CreatedBy = userName,
+                    Updated = DateTime.UtcNow,
+                    UpdatedBy = userName
+                };
+
+                context.ElevateAuditLogs.Add(auditLog);
+                await context.SaveChangesAsync();
+            }
+            catch (Exception ex)
+            {
+                // Never let audit failures break the application - fall back to logger
+                _logger.LogError(ex, "Failed to persist audit event to database. Action: {Action}, Event: {Event}", action, eventJson ?? "(serialization failed)");
+            }
+        }
     }
 }

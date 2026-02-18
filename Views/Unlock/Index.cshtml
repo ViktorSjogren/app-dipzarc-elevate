@@ -1,38 +1,25 @@
-﻿@{
+@{
     ViewData["Title"] = "Unlock User Account";
     Layout = "_Layout";
+    var elevateAccounts = ViewBag.ElevateAccounts as List<string> ?? new List<string>();
+    var hasMultipleAccounts = elevateAccounts.Count > 1;
 }
 
-<div style="max-height: calc(100vh - 120px); overflow-y: auto; width: 100%; scrollbar-width: none; -ms-overflow-style: none;">
-<style>
-    /* Hide scrollbar for Chrome, Safari and Opera */
-    div::-webkit-scrollbar {
-        display: none;
-    }
-</style>
-    <div class="container-fluid px-3" style="padding-top: 2rem; padding-bottom: 2rem;">
+<div class="max-h-screen-120 overflow-y-auto w-100 no-scrollbar" style="padding-top: 56px;">
+    <div class="container-fluid px-3 py-2rem">
         <div class="row justify-content-center">
-            <div class="col-12 col-md-10 col-lg-8 col-xl-6">
-            <div class="card pulse-glow" style="margin: auto;">
+            <div class="col-12 col-md-11 col-lg-10 col-xl-9">
+            <div class="card pulse-glow mx-auto">
                 <div class="card-header text-center">
                     <div class="position-relative mb-3">
-                        <i class="fas fa-unlock-alt fa-2x" style="color: var(--color-warning);"></i>
-                        <div class="circuit-line position-absolute" style="bottom: -10px; left: 25%; right: 25%; height: 1px;"></div>
+                        <i class="fas fa-unlock-alt fa-2x icon-warning"></i>
+                        <div class="circuit-line position-absolute left-25 right-25 h-1px" style="bottom: -10px;"></div>
                     </div>
                     <h3 class="card-title mb-0">
                         Unlock User Account
                     </h3>
                 </div>
                 <div class="card-body">
-                    @if (!string.IsNullOrEmpty(ViewBag.Success))
-                    {
-                        <div class="alert alert-success alert-dismissible fade show" role="alert">
-                            <i class="fas fa-check-circle me-2"></i>
-                            @ViewBag.Success
-                            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
-                        </div>
-                    }
-
                     @if (!string.IsNullOrEmpty(ViewBag.Error))
                     {
                         <div class="alert alert-danger alert-dismissible fade show" role="alert">
@@ -41,6 +28,13 @@
                             <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
                         </div>
                     }
+
+                    <div class="alert alert-warning alert-warning-styled mb-3 py-2" role="alert">
+                        <div class="d-flex align-items-center">
+                            <i class="fas fa-shield-alt me-2 icon-warning"></i>
+                            <small><strong>Security Notice:</strong> All unlock requests are logged and audited for compliance purposes.</small>
+                        </div>
+                    </div>
 
                     @if (!string.IsNullOrEmpty(ViewBag.ElevateAccount))
                     {
@@ -57,12 +51,12 @@
                                     <div class="permission-item mb-2">
                                         <i class="fas fa-key text-warning me-2"></i>
                                         <strong>Elevate Account:</strong><br>
-                                        <small class="text-muted">@ViewBag.ElevateAccount</small>
+                                        <small class="text-muted" id="elevate-account-display">@ViewBag.ElevateAccount</small>
                                     </div>
                                 </div>
                                 <div class="col-md-6">
                                     <div class="permission-item mb-2">
-                                        <i class="fas fa-network-wired text-success me-2"></i>
+                                        <i class="fas fa-network-wired text-secondary me-2"></i>
                                         <strong>IP Address:</strong><br>
                                         <small class="text-muted">@Context.Connection.RemoteIpAddress</small>
                                     </div>
@@ -78,126 +72,145 @@
 
                     <form method="post">
                         <input type="hidden" name="username" value="@User.Identity?.Name" />
+                        <input type="hidden" name="elevateAccount" id="elevateAccountField" value="@ViewBag.ElevateAccount" />
 
-                        <div class="mb-3">
-                            <label class="form-label">
-                                <i class="fas fa-server me-1" style="color: var(--color-success);"></i>
-                                Target Servers <span class="text-danger">*</span>
-                                <span class="badge ms-2" id="server-count" style="background: var(--color-secondary-dark);">0 selected</span>
-                            </label>
-                            @{
-                                var availableServers = ViewBag.Servers as List<string> ?? new List<string>();
-                            }
-                            @if (availableServers.Any())
-                            {
-                                <div class="mb-3 d-flex flex-wrap gap-2">
-                                    <button type="button" class="btn btn-sm btn-outline-success flex-fill flex-sm-grow-0" id="select-all-servers">
-                                        <i class="fas fa-check-double me-1"></i>Select All
-                                    </button>
-                                    <button type="button" class="btn btn-sm btn-outline-secondary flex-fill flex-sm-grow-0" id="clear-all-servers">
-                                        <i class="fas fa-times me-1"></i>Clear All
-                                    </button>
+                        @if (hasMultipleAccounts)
+                        {
+                            <div class="mb-3">
+                                <label for="accountSelector" class="form-label mb-1">
+                                    <i class="fas fa-id-badge me-1 icon-warning"></i>
+                                    Elevate Account <span class="text-danger">*</span>
+                                </label>
+                                <select class="form-control" id="accountSelector" style="background: rgba(255,255,255,0.08); border: 1px solid rgba(255,255,255,0.2); color: white;">
+                                    @foreach (var account in elevateAccounts)
+                                    {
+                                        <option value="@account" selected="@(account == (string)ViewBag.ElevateAccount)" style="background: #203b46;">@account</option>
+                                    }
+                                </select>
+                                <small class="form-text text-primary-light opacity-70">
+                                    Select which elevate account to use for this request
+                                </small>
+                            </div>
+                        }
+
+                        @{
+                            var availableServers = ViewBag.Servers as List<string> ?? new List<string>();
+                            var availableRoles = ViewBag.Roles as List<string> ?? new List<string>();
+                        }
+
+                        <div class="row">
+                            <!-- Target Servers -->
+                            <div class="col-md-6 mb-2">
+                                <label class="form-label mb-1">
+                                    <i class="fas fa-server me-1 icon-secondary"></i>
+                                    Target Servers <span class="text-danger">*</span>
+                                    <span class="badge ms-2 bg-secondary-dark" id="server-count">0 selected</span>
+                                </label>
+                                <div id="server-controls">
+                                    @if (availableServers.Any())
+                                    {
+                                        <div class="mb-2 d-flex gap-2">
+                                            <button type="button" class="btn btn-sm btn-outline-primary" id="select-all-servers">
+                                                <i class="fas fa-check-double me-1"></i>All
+                                            </button>
+                                            <button type="button" class="btn btn-sm btn-outline-secondary" id="clear-all-servers">
+                                                <i class="fas fa-times me-1"></i>Clear
+                                            </button>
+                                        </div>
+                                    }
                                 </div>
-                                <div class="server-checkbox-container @(ViewData.ModelState["servers"]?.Errors.Count > 0 ? "border-danger" : "")" style="max-height: 220px; overflow-y: auto; padding: 1.5rem;">
-                                    <div class="row">
-                                        @foreach (var server in availableServers)
-                                        {
-                                            <div class="col-md-6 mb-3">
-                                                <div class="form-check p-3" style="border: 1px solid var(--color-light-neutral); border-radius: var(--border-radius-sm); background: rgba(255,255,255,0.8); transition: var(--transition-fast);">
+                                <div id="server-list">
+                                    @if (availableServers.Any())
+                                    {
+                                        <div class="server-checkbox-container scrollable-container @(ViewData.ModelState["servers"]?.Errors.Count > 0 ? "border-danger" : "")" style="max-height: 200px; overflow-y: auto;">
+                                            @foreach (var server in availableServers)
+                                            {
+                                                <div class="form-check form-check-styled mb-2">
                                                     <input class="form-check-input server-checkbox" type="checkbox" name="servers" value="@server" id="server-@server.Replace(".", "-").Replace(" ", "-")">
-                                                    <label class="form-check-label w-100" for="server-@server.Replace(".", "-").Replace(" ", "-")" style="cursor: pointer;">
-                                                        <i class="fas fa-server me-2" style="color: var(--color-success);"></i>
+                                                    <label class="form-check-label w-100 cursor-pointer" for="server-@server.Replace(".", "-").Replace(" ", "-")">
+                                                        <i class="fas fa-server me-2 icon-secondary"></i>
                                                         <strong>@server</strong>
-                                                        <br><small class="text-muted">Server instance</small>
                                                     </label>
                                                 </div>
-                                            </div>
-                                        }
+                                            }
+                                        </div>
+                                    }
+                                    else
+                                    {
+                                        <div class="alert alert-warning py-2">
+                                            <i class="fas fa-exclamation-triangle me-2"></i>
+                                            No servers available. Contact your administrator.
+                                        </div>
+                                    }
+                                </div>
+                                @if (ViewData.ModelState["servers"]?.Errors.Count > 0)
+                                {
+                                    <div class="invalid-feedback d-block">
+                                        @ViewData.ModelState["servers"].Errors[0].ErrorMessage
                                     </div>
-                                </div>
-                            }
-                            else
-                            {
-                                <div class="alert alert-warning">
-                                    <i class="fas fa-exclamation-triangle me-2"></i>
-                                    No servers available for your permissions. Please contact your administrator.
-                                </div>
-                            }
-                            @if (ViewData.ModelState["servers"]?.Errors.Count > 0)
-                            {
-                                <div class="invalid-feedback d-block">
-                                    @ViewData.ModelState["servers"].Errors[0].ErrorMessage
-                                </div>
-                            }
-                            <div class="form-text">
-                                <i class="fas fa-info-circle me-1"></i>
-                                Available servers are based on your tier permissions. Select one or more servers where the account should be unlocked.
+                                }
                             </div>
-                        </div>
 
-                        <div class="mb-3">
-                            <label class="form-label">
-                                <i class="fas fa-users-cog me-1" style="color: var(--color-warning);"></i>
-                                User Roles <span class="text-danger">*</span>
-                                <span class="badge ms-2" id="role-count" style="background: var(--color-secondary-dark);">0 selected</span>
-                            </label>
-                            @{
-                                var availableRoles = ViewBag.Roles as List<string> ?? new List<string>();
-                            }
-                            @if (availableRoles.Any())
-                            {
-                                <div class="mb-3 d-flex flex-wrap gap-2">
-                                    <button type="button" class="btn btn-sm btn-outline-warning flex-fill flex-sm-grow-0" id="select-all-roles">
-                                        <i class="fas fa-check-double me-1"></i>Select All
-                                    </button>
-                                    <button type="button" class="btn btn-sm btn-outline-secondary flex-fill flex-sm-grow-0" id="clear-all-roles">
-                                        <i class="fas fa-times me-1"></i>Clear All
-                                    </button>
+                            <!-- AD Domain Roles -->
+                            <div class="col-md-6 mb-2">
+                                <label class="form-label mb-1">
+                                    <i class="fas fa-users-cog me-1 icon-warning"></i>
+                                    AD Domain Roles <span class="text-danger">*</span>
+                                    <span class="badge ms-2 bg-secondary-dark" id="role-count">0 selected</span>
+                                </label>
+                                <div id="role-controls">
+                                    @if (availableRoles.Any())
+                                    {
+                                        <div class="mb-2 d-flex gap-2">
+                                            <button type="button" class="btn btn-sm btn-outline-warning" id="select-all-roles">
+                                                <i class="fas fa-check-double me-1"></i>All
+                                            </button>
+                                            <button type="button" class="btn btn-sm btn-outline-secondary" id="clear-all-roles">
+                                                <i class="fas fa-times me-1"></i>Clear
+                                            </button>
+                                        </div>
+                                    }
                                 </div>
-                                <div class="role-checkbox-container @(ViewData.ModelState["roles"]?.Errors.Count > 0 ? "border-danger" : "")" style="max-height: 220px; overflow-y: auto; padding: 1.5rem;">
-                                    <div class="row">
-                                        @foreach (var role in availableRoles)
-                                        {
-                                            <div class="col-md-6 mb-3">
-                                                <div class="form-check p-3" style="border: 1px solid var(--color-light-neutral); border-radius: var(--border-radius-sm); background: rgba(255,255,255,0.8); transition: var(--transition-fast);">
+                                <div id="role-list">
+                                    @if (availableRoles.Any())
+                                    {
+                                        <div class="role-checkbox-container scrollable-container @(ViewData.ModelState["roles"]?.Errors.Count > 0 ? "border-danger" : "")" style="max-height: 200px; overflow-y: auto;">
+                                            @foreach (var role in availableRoles)
+                                            {
+                                                <div class="form-check form-check-styled mb-2">
                                                     <input class="form-check-input role-checkbox" type="checkbox" name="roles" value="@role" id="role-@role.Replace(" ", "-").Replace("&", "and")">
-                                                    <label class="form-check-label w-100" for="role-@role.Replace(" ", "-").Replace("&", "and")" style="cursor: pointer;">
-                                                        <i class="fas fa-users-cog me-2" style="color: var(--color-warning);"></i>
+                                                    <label class="form-check-label w-100 cursor-pointer" for="role-@role.Replace(" ", "-").Replace("&", "and")">
+                                                        <i class="fas fa-users-cog me-2 icon-warning"></i>
                                                         <strong>@role</strong>
-                                                        <br><small class="text-muted">Permission role</small>
                                                     </label>
                                                 </div>
-                                            </div>
-                                        }
+                                            }
+                                        </div>
+                                    }
+                                    else
+                                    {
+                                        <div class="alert alert-warning py-2">
+                                            <i class="fas fa-exclamation-triangle me-2"></i>
+                                            No roles available. Contact your administrator.
+                                        </div>
+                                    }
+                                </div>
+                                @if (ViewData.ModelState["roles"]?.Errors.Count > 0)
+                                {
+                                    <div class="invalid-feedback d-block">
+                                        @ViewData.ModelState["roles"].Errors[0].ErrorMessage
                                     </div>
-                                </div>
-                            }
-                            else
-                            {
-                                <div class="alert alert-warning">
-                                    <i class="fas fa-exclamation-triangle me-2"></i>
-                                    No roles available for your permissions. Please contact your administrator.
-                                </div>
-                            }
-                            @if (ViewData.ModelState["roles"]?.Errors.Count > 0)
-                            {
-                                <div class="invalid-feedback d-block">
-                                    @ViewData.ModelState["roles"].Errors[0].ErrorMessage
-                                </div>
-                            }
-                            <div class="form-text">
-                                <i class="fas fa-info-circle me-1"></i>
-                                Available roles are based on your account permissions. Select one or more roles to grant during the unlock operation.
+                                }
                             </div>
                         </div>
 
-                        <div class="mb-3">
-                            <label for="reason" class="form-label">
+                        <div class="mb-2">
+                            <label for="reason" class="form-label mb-1">
                                 <i class="fas fa-comment me-1"></i>
                                 Reason for Unlock <span class="text-danger">*</span>
                             </label>
-                            <textarea class="form-control @(ViewData.ModelState["reason"]?.Errors.Count > 0 ? "is-invalid" : "")" 
-                                      id="reason" name="reason" rows="3" 
+                            <textarea class="form-control @(ViewData.ModelState["reason"]?.Errors.Count > 0 ? "is-invalid" : "")"
+                                      id="reason" name="reason" rows="2"
                                       placeholder="Enter the reason for unlocking this account" required></textarea>
                             @if (ViewData.ModelState["reason"]?.Errors.Count > 0)
                             {
@@ -205,18 +218,14 @@
                                     @ViewData.ModelState["reason"].Errors[0].ErrorMessage
                                 </div>
                             }
-                            <div class="form-text">
-                                Please provide a detailed reason for the unlock request for audit purposes.
-                            </div>
                         </div>
-
 
                         <div class="d-grid gap-2 d-md-flex justify-content-md-end">
                             <a href="@Url.Action("Index", "Home")" class="btn btn-outline-secondary me-md-2">
                                 <i class="fas fa-home me-2"></i>
                                 Back to Dashboard
                             </a>
-                            <button type="submit" class="btn btn-success btn-lg pulse-glow" id="submitBtn">
+                            <button type="submit" class="btn btn-primary btn-lg pulse-glow" id="submitBtn">
                                 <i class="fas fa-paper-plane me-2"></i>
                                 Send request
                             </button>
@@ -225,17 +234,6 @@
                 </div>
             </div>
 
-            <div class="mt-4">
-                <div class="alert alert-warning" role="alert" style="border-left: 4px solid var(--color-warning);">
-                    <div class="d-flex align-items-start">
-                        <i class="fas fa-shield-alt me-3 mt-1" style="color: var(--color-warning); font-size: 1.2rem;"></i>
-                        <div>
-                            <h6 class="alert-heading mb-2">Security Notice</h6>
-                            <p class="mb-2">All unlock requests are comprehensively logged and audited for compliance purposes.</p>
-                        </div>
-                    </div>
-                </div>
-                </div>
             </div>
         </div>
     </div>
@@ -248,62 +246,58 @@
             const checkboxes = document.querySelectorAll(`.${checkboxClass}`);
             const checkedCount = document.querySelectorAll(`.${checkboxClass}:checked`).length;
             const countElement = document.getElementById(countId);
-            
+
             if (countElement) {
                 countElement.textContent = `${checkedCount} selected`;
                 if (checkedCount > 0) {
-                    countElement.style.background = 'var(--gradient-success)';
-                    countElement.className = 'badge ms-2';
+                    countElement.classList.remove('bg-secondary-dark');
+                    countElement.classList.add('bg-gradient-primary');
                 } else {
-                    countElement.style.background = 'var(--color-secondary-dark)';
-                    countElement.className = 'badge ms-2';
+                    countElement.classList.remove('bg-gradient-primary');
+                    countElement.classList.add('bg-secondary-dark');
                 }
             }
-            
+
             // Add visual feedback to form-check containers
             checkboxes.forEach(checkbox => {
                 const container = checkbox.closest('.form-check');
                 if (container) {
                     if (checkbox.checked) {
-                        container.style.background = 'rgba(113, 191, 68, 0.1)';
-                        container.style.borderColor = 'var(--color-success)';
-                        container.style.transform = 'scale(1.02)';
-                        container.style.boxShadow = '0 2px 8px rgba(113, 191, 68, 0.2)';
+                        container.classList.add('checked');
                     } else {
-                        container.style.background = 'rgba(255,255,255,0.8)';
-                        container.style.borderColor = 'var(--color-light-neutral)';
-                        container.style.transform = 'scale(1)';
-                        container.style.boxShadow = 'none';
+                        container.classList.remove('checked');
                     }
                 }
             });
         }
 
-        // Server checkbox management
-        document.getElementById('select-all-servers')?.addEventListener('click', function() {
-            const checkboxes = document.querySelectorAll('.server-checkbox');
-            checkboxes.forEach(cb => cb.checked = true);
-            updateCount('server-checkbox', 'server-count');
-        });
+        function bindSelectAllClear() {
+            document.getElementById('select-all-servers')?.addEventListener('click', function() {
+                const checkboxes = document.querySelectorAll('.server-checkbox');
+                checkboxes.forEach(cb => cb.checked = true);
+                updateCount('server-checkbox', 'server-count');
+            });
 
-        document.getElementById('clear-all-servers')?.addEventListener('click', function() {
-            const checkboxes = document.querySelectorAll('.server-checkbox');
-            checkboxes.forEach(cb => cb.checked = false);
-            updateCount('server-checkbox', 'server-count');
-        });
+            document.getElementById('clear-all-servers')?.addEventListener('click', function() {
+                const checkboxes = document.querySelectorAll('.server-checkbox');
+                checkboxes.forEach(cb => cb.checked = false);
+                updateCount('server-checkbox', 'server-count');
+            });
 
-        // Role checkbox management
-        document.getElementById('select-all-roles')?.addEventListener('click', function() {
-            const checkboxes = document.querySelectorAll('.role-checkbox');
-            checkboxes.forEach(cb => cb.checked = true);
-            updateCount('role-checkbox', 'role-count');
-        });
+            document.getElementById('select-all-roles')?.addEventListener('click', function() {
+                const checkboxes = document.querySelectorAll('.role-checkbox');
+                checkboxes.forEach(cb => cb.checked = true);
+                updateCount('role-checkbox', 'role-count');
+            });
 
-        document.getElementById('clear-all-roles')?.addEventListener('click', function() {
-            const checkboxes = document.querySelectorAll('.role-checkbox');
-            checkboxes.forEach(cb => cb.checked = false);
-            updateCount('role-checkbox', 'role-count');
-        });
+            document.getElementById('clear-all-roles')?.addEventListener('click', function() {
+                const checkboxes = document.querySelectorAll('.role-checkbox');
+                checkboxes.forEach(cb => cb.checked = false);
+                updateCount('role-checkbox', 'role-count');
+            });
+        }
+
+        bindSelectAllClear();
 
         // Update counts when individual checkboxes are clicked
         document.addEventListener('change', function(e) {
@@ -315,49 +309,123 @@
             }
         });
 
+        // Account selector - dynamically load permissions when account changes
+        var accountSelector = document.getElementById('accountSelector');
+        if (accountSelector) {
+            accountSelector.addEventListener('change', async function() {
+                var selectedAccount = this.value;
+                document.getElementById('elevateAccountField').value = selectedAccount;
+                document.getElementById('elevate-account-display').textContent = selectedAccount;
+
+                // Show loading state
+                document.getElementById('server-list').innerHTML = '<div class="text-center py-3"><i class="fas fa-spinner fa-spin me-2"></i>Loading...</div>';
+                document.getElementById('role-list').innerHTML = '<div class="text-center py-3"><i class="fas fa-spinner fa-spin me-2"></i>Loading...</div>';
+
+                try {
+                    var response = await fetch('@Url.Action("GetAccountPermissions", "Unlock")?elevateAccount=' + encodeURIComponent(selectedAccount));
+                    var data = await response.json();
+
+                    if (data.error) {
+                        document.getElementById('server-list').innerHTML = '<div class="alert alert-danger py-2"><i class="fas fa-exclamation-triangle me-2"></i>' + data.error + '</div>';
+                        document.getElementById('role-list').innerHTML = '';
+                        return;
+                    }
+
+                    // Rebuild server checkboxes
+                    if (data.servers && data.servers.length > 0) {
+                        var serverHtml = '<div class="server-checkbox-container scrollable-container" style="max-height: 200px; overflow-y: auto;">';
+                        data.servers.forEach(function(server) {
+                            var safeId = server.replace(/\./g, '-').replace(/ /g, '-');
+                            serverHtml += '<div class="form-check form-check-styled mb-2">' +
+                                '<input class="form-check-input server-checkbox" type="checkbox" name="servers" value="' + server + '" id="server-' + safeId + '">' +
+                                '<label class="form-check-label w-100 cursor-pointer" for="server-' + safeId + '">' +
+                                '<i class="fas fa-server me-2 icon-secondary"></i><strong>' + server + '</strong></label></div>';
+                        });
+                        serverHtml += '</div>';
+                        document.getElementById('server-list').innerHTML = serverHtml;
+                        document.getElementById('server-controls').innerHTML = '<div class="mb-2 d-flex gap-2">' +
+                            '<button type="button" class="btn btn-sm btn-outline-primary" id="select-all-servers"><i class="fas fa-check-double me-1"></i>All</button>' +
+                            '<button type="button" class="btn btn-sm btn-outline-secondary" id="clear-all-servers"><i class="fas fa-times me-1"></i>Clear</button></div>';
+                    } else {
+                        document.getElementById('server-list').innerHTML = '<div class="alert alert-warning py-2"><i class="fas fa-exclamation-triangle me-2"></i>No servers available. Contact your administrator.</div>';
+                        document.getElementById('server-controls').innerHTML = '';
+                    }
+
+                    // Rebuild role checkboxes
+                    if (data.roles && data.roles.length > 0) {
+                        var roleHtml = '<div class="role-checkbox-container scrollable-container" style="max-height: 200px; overflow-y: auto;">';
+                        data.roles.forEach(function(role) {
+                            var safeId = role.replace(/ /g, '-').replace(/&/g, 'and');
+                            roleHtml += '<div class="form-check form-check-styled mb-2">' +
+                                '<input class="form-check-input role-checkbox" type="checkbox" name="roles" value="' + role + '" id="role-' + safeId + '">' +
+                                '<label class="form-check-label w-100 cursor-pointer" for="role-' + safeId + '">' +
+                                '<i class="fas fa-users-cog me-2 icon-warning"></i><strong>' + role + '</strong></label></div>';
+                        });
+                        roleHtml += '</div>';
+                        document.getElementById('role-list').innerHTML = roleHtml;
+                        document.getElementById('role-controls').innerHTML = '<div class="mb-2 d-flex gap-2">' +
+                            '<button type="button" class="btn btn-sm btn-outline-warning" id="select-all-roles"><i class="fas fa-check-double me-1"></i>All</button>' +
+                            '<button type="button" class="btn btn-sm btn-outline-secondary" id="clear-all-roles"><i class="fas fa-times me-1"></i>Clear</button></div>';
+                    } else {
+                        document.getElementById('role-list').innerHTML = '<div class="alert alert-warning py-2"><i class="fas fa-exclamation-triangle me-2"></i>No roles available. Contact your administrator.</div>';
+                        document.getElementById('role-controls').innerHTML = '';
+                    }
+
+                    // Rebind select all/clear buttons and update counts
+                    bindSelectAllClear();
+                    updateCount('server-checkbox', 'server-count');
+                    updateCount('role-checkbox', 'role-count');
+                } catch (err) {
+                    console.error('Error loading account permissions:', err);
+                    document.getElementById('server-list').innerHTML = '<div class="alert alert-danger py-2"><i class="fas fa-exclamation-triangle me-2"></i>Failed to load permissions. Please try again.</div>';
+                    document.getElementById('role-list').innerHTML = '';
+                }
+            });
+        }
+
         // Form submission handling
         document.getElementById('submitBtn').addEventListener('click', function(e) {
-            const username = document.getElementById('username').value.trim();
+            const username = document.querySelector('input[name="username"]').value.trim();
             const reason = document.getElementById('reason').value.trim();
             const selectedServers = document.querySelectorAll('.server-checkbox:checked');
             const selectedRoles = document.querySelectorAll('.role-checkbox:checked');
-            
-            // Custom validation
-            if (!selectedServers.length) {
+
+            // Clear any previous inline validation messages
+            document.querySelectorAll('.js-validation-error').forEach(el => el.remove());
+
+            // Must select at least one server OR one role (matches server-side validation)
+            if (!selectedServers.length && !selectedRoles.length) {
                 e.preventDefault();
-                alert('Please select at least one server.');
-                document.querySelector('.server-checkbox-container').scrollIntoView({ behavior: 'smooth' });
+                var errorDiv = document.createElement('div');
+                errorDiv.className = 'alert alert-danger mt-2 js-validation-error';
+                errorDiv.innerHTML = '<i class="fas fa-exclamation-triangle me-2"></i>Please select at least one server or role.';
+                document.querySelector('.server-checkbox-container, .role-checkbox-container')?.closest('.row')?.insertAdjacentElement('afterend', errorDiv);
+                errorDiv.scrollIntoView({ behavior: 'smooth', block: 'center' });
                 return;
             }
-            
-            if (!selectedRoles.length) {
-                e.preventDefault();
-                alert('Please select at least one role.');
-                document.querySelector('.role-checkbox-container').scrollIntoView({ behavior: 'smooth' });
-                return;
-            }
-            
+
             if (!username || !reason) {
                 return; // Let HTML5 validation handle this
             }
-            
+
             // Confirmation dialog
             const serverList = Array.from(selectedServers).map(cb => cb.value).join(', ');
             const roleList = Array.from(selectedRoles).map(cb => cb.value).join(', ');
-            
-            const confirmMessage = `Are you sure you want to unlock "${username}"?\n\nServers: ${serverList}\nRoles: ${roleList}`;
-            
+            const accountName = document.getElementById('elevateAccountField').value;
+
+            var confirmParts = [`Are you sure you want to unlock "${username}"?\n\nElevate Account: ${accountName}`];
+            if (serverList) confirmParts.push(`Servers: ${serverList}`);
+            if (roleList) confirmParts.push(`Roles: ${roleList}`);
+            const confirmMessage = confirmParts.join('\n');
+
             if (!confirm(confirmMessage)) {
                 e.preventDefault();
             } else {
-                // Show enhanced loading state with circuit animation
-                this.innerHTML = '<i class="fas fa-cog fa-spin me-2"></i>Processing Request...';
-                this.disabled = true;
-                this.style.background = 'var(--gradient-warning)';
-                this.style.transform = 'scale(0.98)';
-                
-                // Add pulsing effect during submission
-                this.style.animation = 'pulseGlow 1s ease-in-out infinite';
+                // Show loading state - defer the disable so the browser submits the form first
+                var btn = this;
+                btn.innerHTML = '<i class="fas fa-cog fa-spin me-2"></i>Processing Request...';
+                btn.classList.add('btn-loading');
+                setTimeout(function() { btn.disabled = true; }, 0);
             }
         });
 

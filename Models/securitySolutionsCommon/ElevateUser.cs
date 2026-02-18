@@ -9,7 +9,7 @@ public partial class ElevateUser
 
     public int CustomerId { get; set; }
 
-    public string Username { get; set; } = null!;
+    public string UserName { get; set; } = null!;
 
     public string ElevateAccount { get; set; } = null!;
 
@@ -17,13 +17,19 @@ public partial class ElevateUser
 
     public DateTime? Created { get; set; }
 
-    public string CreatedBy { get; set; } = null!;
+    public string? CreatedBy { get; set; }
 
     public DateTime? Updated { get; set; }
 
-    public string UpdatedBy { get; set; } = null!;
+    public string? UpdatedBy { get; set; }
+
+    public string Status { get; set; } = null!;
+
+    public int Tier { get; set; }
 
     public virtual Customer Customer { get; set; } = null!;
 
-    public virtual ICollection<ElevatePermission> ElevatePermissions { get; set; } = new List<ElevatePermission>();
+    public virtual ICollection<ElevateAssignedPermission> ElevateAssignedPermissions { get; set; } = new List<ElevateAssignedPermission>();
+
+    public virtual ElevateAvailableTier TierNavigation { get; set; } = null!;
 }

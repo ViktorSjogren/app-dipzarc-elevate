@@ -40,8 +40,7 @@ namespace dizparc_elevate.Controllers
         {
             if (User.Identity?.IsAuthenticated == true)
             {
-                await _auditService.LogAsync("UserSignOut", "Authentication", true,
-                    $"User {User.Identity.Name} signed out");
+                await _auditService.LogAsync("UserSignOut", new { userName = User.Identity.Name });
             }
 
             var callbackUrl = Url.Action("SignedOut", "Account", values: null, protocol: Request.Scheme);

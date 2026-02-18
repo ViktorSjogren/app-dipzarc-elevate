@@ -1,0 +1,210 @@
+@{
+    ViewData["Title"] = "Manage User Permissions";
+    Layout = "_Layout";
+    var user = ViewBag.User as dizparc_elevate.Models.securitySolutionsCommon.ElevateUser;
+    var assignedPermissions = ViewBag.AssignedPermissions as List<dizparc_elevate.Models.securitySolutionsCommon.ElevatePermission>;
+    var availablePermissions = ViewBag.AvailablePermissions as List<dizparc_elevate.Models.securitySolutionsCommon.ElevatePermission>;
+    var assignedIds = assignedPermissions?.Select(p => p.ElevatePermissionsId).ToHashSet() ?? new HashSet<int>();
+    var unassignedPermissions = availablePermissions?.Where(p => !assignedIds.Contains(p.ElevatePermissionsId)).ToList();
+}
+
+@Html.AntiForgeryToken()
+
+<div class="page-wrapper-fixed">
+    @await Html.PartialAsync("_CustomerSwitcher")
+    <div class="page-content-section" style="padding-top: 56px; height: calc(100vh - 56px);">
+        <div class="layout-with-blade" style="height: 100%;">
+            <!-- Left Blade -->
+            <div class="layout-blade" style="height: 100%;">
+                <div class="blade-container" style="background: linear-gradient(180deg, rgba(32, 59, 70, 0.98) 0%, rgba(32, 59, 70, 0.92) 100%); border-right: 3px solid var(--color-primary-dark); box-shadow: 2px 0 10px rgba(0,0,0,0.3); height: 100%; display: flex; flex-direction: column; overflow: hidden;">
+                    <div class="blade-header" style="padding: .5rem 1rem; margin-bottom: 0.75rem; border-bottom: 2px solid var(--color-primary-dark); background: rgba(0,0,0,0.3); flex-shrink: 0;">
+                        <h3 class="mb-1 text-white">
+                            <i class="fas fa-shield-alt me-2" style="color: var(--color-warning);"></i>
+                            Permission Manager
+                        </h3>
+                        <h6 class="mb-0 text-white" style="opacity: 0.7;">
+                            <i class="fas fa-user me-2"></i> User Details
+                        </h6>
+                    </div>
+
+                    <div class="blade-section" style="padding: 0.75rem 1rem; margin-bottom: 0.75rem; background: rgba(255,255,255,0.05); border-radius: 8px;">
+                        <div style="font-size: 0.75rem; margin-bottom: 0.5rem; color: var(--color-warning); font-weight: 600;">USER INFORMATION</div>
+                        @if(user != null)
+                        {
+                            <div class="text-white" style="font-size: 0.875rem;">
+                                <div class="mb-2"><span style="opacity: 0.7;">Name:</span> <strong>@user.UserName</strong></div>
+                                <div class="mb-2"><span style="opacity: 0.7;">Account:</span> <strong style="color: var(--color-warning);">@user.ElevateAccount</strong></div>
+                                <div class="mb-2"><span style="opacity: 0.7;">Tier:</span> <span class="badge bg-primary">@(user.TierNavigation?.DisplayName ?? "N/A")</span></div>
+                                <div class="mb-2"><span style="opacity: 0.7;">Phone:</span> <strong>@user.PhoneNumber</strong></div>
+                            </div>
+                        }
+                    </div>
+
+                    <div class="blade-section" style="padding: 0.75rem 1rem;">
+                        <a href="@Url.Action("UserAdministration", "Administration")" class="btn btn-outline-secondary btn-sm w-100" style="font-size: 0.8rem; padding: 0.5rem;">
+                            <i class="fas fa-arrow-left me-1"></i>Back to Users
+                        </a>
+                    </div>
+
+                    <div class="blade-section" style="padding: 0.75rem 1rem; background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.1); border-radius: 8px;">
+                        <div style="font-size: 0.75rem; margin-bottom: 0.5rem; color: var(--color-warning); font-weight: 600;">STATISTICS</div>
+                        <div class="text-white" style="font-size: 0.875rem;">
+                            <div class="d-flex justify-content-between mb-1"><span style="opacity: 0.7;">Assigned:</span><span class="fw-bold" id="statAssigned">@(assignedPermissions?.Count ?? 0)</span></div>
+                            <div class="d-flex justify-content-between"><span style="opacity: 0.7;">Available:</span><span class="fw-bold" id="statAvailable">@(unassignedPermissions?.Count ?? 0)</span></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Right Main Content -->
+            <div class="layout-main" style="padding: 0; display: flex; flex-direction: column; height: 100%;">
+                <div id="toast" class="d-none" style="position: fixed; top: 70px; right: 20px; z-index: 1050; min-width: 250px; padding: 0.75rem 1rem; border-radius: 8px; color: white; font-size: 0.875rem; box-shadow: 0 4px 12px rgba(0,0,0,0.4);">
+                    <i id="toastIcon" class="me-2"></i><span id="toastMessage"></span>
+                </div>
+
+                <div class="container-fluid p-3" style="overflow-y: auto; flex: 1;">
+                    <div class="row">
+                        <!-- Assigned Permissions -->
+                        <div class="col-md-6 mb-3">
+                            <div class="card h-100" style="background: rgba(32, 59, 70, 0.95); border: 1px solid var(--color-primary-dark);">
+                                <div class="card-header" style="background: linear-gradient(135deg, var(--color-primary-dark) 0%, var(--color-secondary-dark) 100%); border-bottom: 2px solid var(--color-primary-dark);">
+                                    <h5 class="text-white mb-0"><i class="fas fa-check-circle me-2 text-success"></i>Assigned Permissions</h5>
+                                </div>
+                                <div class="card-body" id="assignedList">
+                                    @if(assignedPermissions != null && assignedPermissions.Any())
+                                    {
+                                        <div class="list-group">
+                                            @foreach(var perm in assignedPermissions.OrderBy(p => p.TypeNavigation?.Type).ThenBy(p => p.Value))
+                                            {
+                                                <div class="list-group-item d-flex justify-content-between align-items-center perm-item" data-id="@perm.ElevatePermissionsId" style="background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.1); margin-bottom: 0.5rem; border-radius: 6px;">
+                                                    <div>
+                                                        <span class="text-white fw-bold">@perm.Value</span><br />
+                                                        <small style="color: var(--color-warning);">@(perm.TypeNavigation?.Type ?? "unknown")</small>
+                                                    </div>
+                                                    <button class="btn btn-sm btn-outline-danger remove-btn" data-id="@perm.ElevatePermissionsId" title="Remove Permission"><i class="fas fa-minus"></i></button>
+                                                </div>
+                                            }
+                                        </div>
+                                    }
+                                    else
+                                    {
+                                        <div class="text-white text-center py-4" style="opacity: 0.5;" id="noAssignedMsg"><i class="fas fa-inbox fa-2x mb-2 d-block"></i>No permissions assigned yet.</div>
+                                    }
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Available Permissions -->
+                        <div class="col-md-6 mb-3">
+                            <div class="card h-100" style="background: rgba(32, 59, 70, 0.95); border: 1px solid var(--color-primary-dark);">
+                                <div class="card-header" style="background: linear-gradient(135deg, var(--color-primary-dark) 0%, var(--color-secondary-dark) 100%); border-bottom: 2px solid var(--color-primary-dark);">
+                                    <h5 class="text-white mb-0">
+                                        <i class="fas fa-plus-circle me-2" style="color: var(--color-warning);"></i>
+                                        Available Permissions
+                                        <span class="ms-2" style="font-size: 1.5rem; color: var(--color-warning);">(@(user?.TierNavigation?.DisplayName ?? "N/A"))</span>
+                                    </h5>
+                                </div>
+                                <div class="card-body" id="availableList">
+                                    @if(unassignedPermissions != null && unassignedPermissions.Any())
+                                    {
+                                        <div class="list-group">
+                                            @foreach(var perm in unassignedPermissions.OrderBy(p => p.TypeNavigation?.Type).ThenBy(p => p.Value))
+                                            {
+                                                <div class="list-group-item d-flex justify-content-between align-items-center perm-item" data-id="@perm.ElevatePermissionsId" style="background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.1); margin-bottom: 0.5rem; border-radius: 6px;">
+                                                    <div>
+                                                        <span class="text-white fw-bold">@perm.Value</span><br />
+                                                        <small style="color: var(--color-warning);">@(perm.TypeNavigation?.Type ?? "unknown")</small>
+                                                    </div>
+                                                    <button class="btn btn-sm btn-outline-success assign-btn" data-id="@perm.ElevatePermissionsId" title="Assign Permission"><i class="fas fa-plus"></i></button>
+                                                </div>
+                                            }
+                                        </div>
+                                    }
+                                    else if(availablePermissions != null && availablePermissions.Any())
+                                    {
+                                        <div class="text-white text-center py-4" style="opacity: 0.5;" id="allAssignedMsg"><i class="fas fa-check-double fa-2x mb-2 d-block" style="color: var(--color-warning);"></i>All permissions for this tier are assigned.</div>
+                                    }
+                                    else
+                                    {
+                                        <div class="text-white text-center py-4" style="opacity: 0.5;"><i class="fas fa-exclamation-triangle fa-2x mb-2 d-block" style="color: var(--color-warning);"></i>No permissions available for tier '@(user?.TierNavigation?.DisplayName ?? "N/A")'.</div>
+                                    }
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    document.addEventListener('DOMContentLoaded', function () {
+        const userId = @(user?.ElevateUsersId ?? 0);
+        const token = document.querySelector('input[name="__RequestVerificationToken"]').value;
+
+        function showToast(message, success) {
+            const toast = document.getElementById('toast');
+            const icon = document.getElementById('toastIcon');
+            const msg = document.getElementById('toastMessage');
+            toast.style.background = success ? 'rgba(25, 135, 84, 0.95)' : 'rgba(220, 53, 69, 0.95)';
+            icon.className = success ? 'fas fa-check-circle me-2' : 'fas fa-exclamation-circle me-2';
+            msg.textContent = message;
+            toast.classList.remove('d-none');
+            setTimeout(() => toast.classList.add('d-none'), 2500);
+        }
+
+        function updateStats(assignedDelta) {
+            const assigned = document.getElementById('statAssigned');
+            const available = document.getElementById('statAvailable');
+            assigned.textContent = parseInt(assigned.textContent) + assignedDelta;
+            available.textContent = parseInt(available.textContent) - assignedDelta;
+        }
+
+        async function togglePermission(permissionId, btn, action) {
+            btn.disabled = true;
+            btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i>';
+            const url = action === 'assign' ? '@Url.Action("AssignPermission", "Administration")' : '@Url.Action("RemovePermission", "Administration")';
+            try {
+                const response = await fetch(url, { method: 'POST', headers: { 'Content-Type': 'application/x-www-form-urlencoded' }, body: `userId=${userId}&permissionId=${permissionId}&__RequestVerificationToken=${encodeURIComponent(token)}` });
+                const result = await response.json();
+                if (result.success) {
+                    const item = btn.closest('.perm-item');
+                    const assignedList = document.getElementById('assignedList');
+                    const availableList = document.getElementById('availableList');
+                    if (action === 'assign') {
+                        btn.className = 'btn btn-sm btn-outline-danger remove-btn'; btn.innerHTML = '<i class="fas fa-minus"></i>'; btn.title = 'Remove Permission'; btn.disabled = false;
+                        let assignedGroup = assignedList.querySelector('.list-group');
+                        if (!assignedGroup) { assignedList.innerHTML = ''; assignedGroup = document.createElement('div'); assignedGroup.className = 'list-group'; assignedList.appendChild(assignedGroup); }
+                        const noMsg = assignedList.querySelector('#noAssignedMsg'); if (noMsg) noMsg.remove();
+                        assignedGroup.appendChild(item); updateStats(1);
+                        const remainingAvailable = availableList.querySelectorAll('.perm-item');
+                        if (remainingAvailable.length === 0) { const availGroup = availableList.querySelector('.list-group'); if (availGroup) availGroup.remove(); availableList.innerHTML = '<div class="text-white text-center py-4" style="opacity: 0.5;" id="allAssignedMsg"><i class="fas fa-check-double fa-2x mb-2 d-block" style="color: var(--color-warning);"></i>All permissions for this tier are assigned.</div>'; }
+                    } else {
+                        btn.className = 'btn btn-sm btn-outline-success assign-btn'; btn.innerHTML = '<i class="fas fa-plus"></i>'; btn.title = 'Assign Permission'; btn.disabled = false;
+                        let availGroup = availableList.querySelector('.list-group');
+                        if (!availGroup) { availableList.innerHTML = ''; availGroup = document.createElement('div'); availGroup.className = 'list-group'; availableList.appendChild(availGroup); }
+                        const allMsg = availableList.querySelector('#allAssignedMsg'); if (allMsg) allMsg.remove();
+                        availGroup.appendChild(item); updateStats(-1);
+                        const remainingAssigned = assignedList.querySelectorAll('.perm-item');
+                        if (remainingAssigned.length === 0) { const assignGroup = assignedList.querySelector('.list-group'); if (assignGroup) assignGroup.remove(); assignedList.innerHTML = '<div class="text-white text-center py-4" style="opacity: 0.5;" id="noAssignedMsg"><i class="fas fa-inbox fa-2x mb-2 d-block"></i>No permissions assigned yet.</div>'; }
+                    }
+                    showToast(result.message, true);
+                } else {
+                    showToast(result.message || 'An error occurred.', false);
+                    btn.disabled = false; btn.innerHTML = action === 'assign' ? '<i class="fas fa-plus"></i>' : '<i class="fas fa-minus"></i>';
+                }
+            } catch (error) {
+                showToast('A network error occurred.', false);
+                btn.disabled = false; btn.innerHTML = action === 'assign' ? '<i class="fas fa-plus"></i>' : '<i class="fas fa-minus"></i>';
+            }
+        }
+
+        document.addEventListener('click', function (e) {
+            const assignBtn = e.target.closest('.assign-btn');
+            if (assignBtn) { togglePermission(assignBtn.dataset.id, assignBtn, 'assign'); return; }
+            const removeBtn = e.target.closest('.remove-btn');
+            if (removeBtn) { togglePermission(removeBtn.dataset.id, removeBtn, 'remove'); }
+        });
+    });
+</script>

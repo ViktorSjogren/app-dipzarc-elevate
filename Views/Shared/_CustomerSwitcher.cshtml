@@ -1,0 +1,26 @@
+@if (ViewBag.IsGlobalAdmin == true)
+{
+    var customers = ViewBag.Customers as IEnumerable<dizparc_elevate.Models.securitySolutionsCommon.Customer>;
+    var currentCustomerId = (int?)ViewBag.CurrentCustomerId;
+    <div class="customer-switcher-bar" style="background: rgba(113, 191, 68, 0.15); border-bottom: 2px solid var(--color-success, #71BF44); padding: 0.5rem 1rem;">
+        <form method="post" action="@Url.Action("SwitchCustomer", "Administration")" class="d-flex align-items-center justify-content-center">
+            @Html.AntiForgeryToken()
+            <i class="fas fa-building me-2" style="color: var(--color-success, #71BF44);"></i>
+            <label class="me-2 text-white fw-bold" style="font-size: 0.85rem; white-space: nowrap;">Customer:</label>
+            <select name="customerId" class="form-select form-select-sm" onchange="this.form.submit()"
+                    style="max-width: 350px; background: rgba(255,255,255,0.1); border: 1px solid rgba(255,255,255,0.2); color: white; font-size: 0.85rem;">
+                @if (customers != null)
+                {
+                    @foreach (var customer in customers)
+                    {
+                        <option value="@customer.CustomerId"
+                                selected="@(customer.CustomerId == currentCustomerId)"
+                                style="background: #1a1a2e; color: white;">
+                            @customer.CustomerName
+                        </option>
+                    }
+                }
+            </select>
+        </form>
+    </div>
+}
