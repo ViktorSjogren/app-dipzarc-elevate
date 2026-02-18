@@ -227,8 +227,8 @@ namespace dizparc_elevate
             // Register admin authorization handler
             services.AddScoped<IAuthorizationHandler, ElevateAdminHandler>();
 
-            // Register webhook service for Azure Automation calls
-            services.AddScoped<IWebhookService, WebhookService>();
+            // Register runbook service for Azure Automation direct API calls
+            services.AddScoped<IRunbookService, RunbookService>();
 
             // Register Graph service for Entra ID group management
             services.AddScoped<IGraphService, GraphService>();
@@ -284,20 +284,13 @@ namespace dizparc_elevate
                 client.DefaultRequestHeaders.Add("User-Agent", "entraPam/1.0");
             });
 
-            // Webhook client: Azure Automation round-robins across IPs and some are
-            // intermittently dead. PooledConnectionLifetime = 0 forces DNS re-resolution
-            // on every connection so each retry attempt can land on a different IP.
-            services.AddHttpClient("Webhook")
-                .ConfigurePrimaryHttpMessageHandler(() => new SocketsHttpHandler
-                {
-                    PooledConnectionLifetime = TimeSpan.Zero,
-                    PooledConnectionIdleTimeout = TimeSpan.FromSeconds(1),
-                    ConnectTimeout = TimeSpan.FromSeconds(2),
-                    // Force HTTP/1.1 - HTTP/2 multiplexes requests over a single
-                    // connection, which defeats DNS round-robin on retries.
-                    EnableMultipleHttp2Connections = false
-                })
-                .SetHandlerLifetime(TimeSpan.FromSeconds(5));
+            // HttpClient for Azure Management API calls (used by RunbookService)
+            services.AddHttpClient("AzureManagement", client =>
+            {
+                client.Timeout = TimeSpan.FromSeconds(30);
+                client.DefaultRequestHeaders.Accept.Add(
+                    new System.Net.Http.Headers.MediaTypeWithQualityHeaderValue("application/json"));
+            });
 
             // Add generic HttpClientFactory for dependency injection
             services.AddHttpClient();

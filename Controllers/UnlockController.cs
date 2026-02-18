@@ -3,6 +3,7 @@ using Microsoft.AspNetCore.Mvc;
 using dizparc_elevate.Services;
 using Microsoft.EntityFrameworkCore;
 using dizparc_elevate.Models.securitySolutionsCommon;
+using System.Text.Json;
 
 namespace dizparc_elevate.Controllers
 {
@@ -11,14 +12,14 @@ namespace dizparc_elevate.Controllers
     {
         private readonly ILogger<UnlockController> _logger;
         private readonly Sqldb_securitySolutionsCommon _context;
-        private readonly IWebhookService _webhookService;
+        private readonly IRunbookService _runbookService;
         private readonly IAuditService _auditService;
 
-        public UnlockController(ILogger<UnlockController> logger, Sqldb_securitySolutionsCommon context, IWebhookService webhookService, IAuditService auditService)
+        public UnlockController(ILogger<UnlockController> logger, Sqldb_securitySolutionsCommon context, IRunbookService runbookService, IAuditService auditService)
         {
             _logger = logger;
             _context = context;
-            _webhookService = webhookService;
+            _runbookService = runbookService;
             _auditService = auditService;
         }
 
@@ -173,19 +174,20 @@ namespace dizparc_elevate.Controllers
                     return View();
                 }
 
-                var payload = new
+                // Serialize unlock data as JSON string for the runbook parameter
+                var unlockData = JsonSerializer.Serialize(new { servers, roles });
+
+                var parameters = new Dictionary<string, string>
                 {
-                    elevate_account = userInfo.ElevateAccount,
-                    username = username.Trim(),
-                    unlock = new
-                    {
-                        servers = servers,
-                        roles = roles
-                    }
+                    ["elevate_account"] = userInfo.ElevateAccount,
+                    ["username"] = username.Trim(),
+                    ["unlock"] = unlockData
                 };
 
-                var result = await _webhookService.PostFromEnvAsync(
-                    "Unlock_ActiveDirectoryAccountWebhook_webhook", payload);
+                var result = await _runbookService.StartRunbookAsync(
+                    RunbookNames.UnlockActiveDirectoryAccount,
+                    userInfo.CustomerId,
+                    parameters);
 
                 if (!result.Success)
                 {

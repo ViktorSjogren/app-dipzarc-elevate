@@ -19,17 +19,17 @@ namespace dizparc_elevate.Controllers
         private readonly Sqldb_securitySolutionsCommon _context;
         private readonly IHttpClientFactory _httpClientFactory;
         private readonly IServiceScopeFactory _serviceScopeFactory;
-        private readonly IWebhookService _webhookService;
+        private readonly IRunbookService _runbookService;
         private readonly IGraphService _graphService;
         private readonly IAuditService _auditService;
 
-        public AdministrationController(ILogger<AdministrationController> logger, Sqldb_securitySolutionsCommon context, IHttpClientFactory httpClientFactory, IServiceScopeFactory serviceScopeFactory, IWebhookService webhookService, IGraphService graphService, IAuditService auditService)
+        public AdministrationController(ILogger<AdministrationController> logger, Sqldb_securitySolutionsCommon context, IHttpClientFactory httpClientFactory, IServiceScopeFactory serviceScopeFactory, IRunbookService runbookService, IGraphService graphService, IAuditService auditService)
         {
             _logger = logger;
             _context = context;
             _httpClientFactory = httpClientFactory;
             _serviceScopeFactory = serviceScopeFactory;
-            _webhookService = webhookService;
+            _runbookService = runbookService;
             _graphService = graphService;
             _auditService = auditService;
         }
@@ -304,54 +304,25 @@ namespace dizparc_elevate.Controllers
             _context.ElevatePermissions.Add(newPermission);
             await _context.SaveChangesAsync();
 
-            // Call webhook to create device group
-            var webhookEnvVar = Environment.GetEnvironmentVariable("Create_DeviceGroup_webhook")?.Trim() ?? "";
+            // Check if Azure Automation is configured
+            var automationConfigured = !string.IsNullOrEmpty(
+                Environment.GetEnvironmentVariable("Azure_AutomationAccount")?.Trim());
 
-            // Pre-validate Azure auth before starting - fail fast if we can't monitor the job
-            if (!string.IsNullOrEmpty(webhookEnvVar))
-            {
-                var subscriptionId = Environment.GetEnvironmentVariable("Azure_SubscriptionId");
-                var resourceGroup = Environment.GetEnvironmentVariable("Azure_ResourceGroup");
-                var automationAccount = Environment.GetEnvironmentVariable("Azure_AutomationAccount");
-
-                if (string.IsNullOrEmpty(subscriptionId) || string.IsNullOrEmpty(resourceGroup) || string.IsNullOrEmpty(automationAccount))
-                {
-                    _logger.LogError("Azure configuration not complete. Cannot start onboarding without job monitoring capability.");
-                    _context.ElevatePermissions.Remove(newPermission);
-                    await _context.SaveChangesAsync();
-                    return Json(new { success = false, error = "Azure configuration is incomplete. Please contact an administrator." });
-                }
-
-                try
-                {
-                    var credential = new DefaultAzureCredential();
-                    await credential.GetTokenAsync(
-                        new TokenRequestContext(new[] { "https://management.azure.com/.default" })
-                    );
-                }
-                catch (Exception ex)
-                {
-                    _logger.LogError(ex, "Azure authentication failed. Cannot start onboarding without job monitoring capability.");
-                    _context.ElevatePermissions.Remove(newPermission);
-                    await _context.SaveChangesAsync();
-                    return Json(new { success = false, error = "Something went wrong. Please report this error and ensure the application has valid credentials before starting onboarding." });
-                }
-            }
-
-            if (!string.IsNullOrEmpty(webhookEnvVar))
+            if (automationConfigured)
             {
                 try
                 {
-                    _logger.LogInformation("Calling device group creation webhook for server: {ServerName}", serverName);
-
                     var tierRecord = await _context.ElevateAvailableTiers.FindAsync(tier);
-                    var payload = new
+                    var parameters = new Dictionary<string, string>
                     {
-                        DeviceName = serverName,
-                        Tier = tierRecord?.TierName ?? tier.ToString()
+                        ["DeviceName"] = serverName,
+                        ["Tier"] = tierRecord?.TierName ?? tier.ToString()
                     };
 
-                    var result = await _webhookService.PostFromEnvAsync("Create_DeviceGroup_webhook", payload);
+                    var result = await _runbookService.StartRunbookAsync(
+                        RunbookNames.CreateDeviceGroup,
+                        effectiveCustomerId,
+                        parameters);
 
                     if (!result.Success)
                     {
@@ -360,34 +331,7 @@ namespace dizparc_elevate.Controllers
                         return Json(new { success = false, error = result.ErrorMessage ?? "Failed to initiate device group creation." });
                     }
 
-                    // Parse the response to get job ID
-                    var responseContent = result.ResponseBody ?? "";
-                    _logger.LogInformation("Device group creation webhook response: {Response}", responseContent);
-
-                    string? jobId = null;
-                    try
-                    {
-                        using var jsonDoc = JsonDocument.Parse(responseContent);
-                        if (jsonDoc.RootElement.TryGetProperty("JobIds", out var jobIds) &&
-                            jobIds.ValueKind == JsonValueKind.Array &&
-                            jobIds.GetArrayLength() > 0)
-                        {
-                            jobId = jobIds[0].GetString();
-                            _logger.LogInformation("Device group creation job ID: {JobId}", jobId);
-                        }
-                    }
-                    catch (JsonException ex)
-                    {
-                        _logger.LogWarning("Could not parse webhook response for job ID: {Error}", ex.Message);
-                    }
-
-                    if (string.IsNullOrEmpty(jobId))
-                    {
-                        _logger.LogError("No job ID received from webhook");
-                        _context.ElevatePermissions.Remove(newPermission);
-                        await _context.SaveChangesAsync();
-                        return Json(new { success = false, error = "Webhook did not return a job ID." });
-                    }
+                    var jobId = result.JobId;
 
                     // Create job tracking record
                     var jobRecord = new ElevateJob
@@ -428,15 +372,15 @@ namespace dizparc_elevate.Controllers
             }
             else
             {
-                // No webhook configured - update permission record to in-progress status (for testing)
-                _logger.LogInformation("No webhook configured, setting server to in-progress status");
+                // No automation configured - update permission record to in-progress status (for testing)
+                _logger.LogInformation("No automation configured, setting server to in-progress status");
 
                 newPermission.OnboardingStatus = 2;
                 await _context.SaveChangesAsync();
 
                 return Json(new {
                     success = true,
-                    message = "Server moved to in-progress status (no webhook configured).",
+                    message = "Server moved to in-progress status (no automation configured).",
                     serverName = serverName
                 });
             }
@@ -1229,26 +1173,32 @@ namespace dizparc_elevate.Controllers
                 return View();
             }
 
-            // Track whether AD account creation succeeded (only matters if webhook is configured)
+            // Track whether AD account creation succeeded (only matters if automation is configured)
             bool adAccountCreated = false;
 
-            // Call webhook to create Active Directory account
-            var webhookEnvConfigured = !string.IsNullOrEmpty(
-                Environment.GetEnvironmentVariable("Create_ElevateAccount_webhook")?.Trim());
+            // Check if Azure Automation is configured
+            var automationConfigured = !string.IsNullOrEmpty(
+                Environment.GetEnvironmentVariable("Azure_AutomationAccount")?.Trim());
 
-            if (webhookEnvConfigured)
+            if (automationConfigured)
             {
                 try
                 {
-                    _logger.LogInformation("Calling AD account creation webhook for user: {UserName}", userName);
+                    _logger.LogInformation("Starting AD account creation runbook for user: {UserName}", userName);
 
-                    var payload = new { username = elevateAccount };
-
-                    var webhookResult = await _webhookService.PostFromEnvAsync("Create_ElevateAccount_webhook", payload);
-
-                    if (!webhookResult.Success)
+                    var parameters = new Dictionary<string, string>
                     {
-                        ModelState.AddModelError("", webhookResult.ErrorMessage ?? "Failed to create Active Directory account.");
+                        ["username"] = elevateAccount
+                    };
+
+                    var runbookResult = await _runbookService.StartRunbookAsync(
+                        RunbookNames.CreateElevateAccount,
+                        effectiveCustomerId,
+                        parameters);
+
+                    if (!runbookResult.Success)
+                    {
+                        ModelState.AddModelError("", runbookResult.ErrorMessage ?? "Failed to create Active Directory account.");
 
                         await LoadAvailableTiersToViewBag();
                         await SetMultiTenantViewBag();
@@ -1256,216 +1206,143 @@ namespace dizparc_elevate.Controllers
                         return View();
                     }
 
-                    // Parse the response to get job ID if available
-                    var responseContent = webhookResult.ResponseBody ?? "";
-                    _logger.LogInformation("AD account creation webhook response: {Response}", responseContent);
+                    var jobId = runbookResult.JobId;
+                    TempData["ADJobId"] = jobId;
 
-                    // Try to parse the response to get JobIds
-                    string? jobId = null;
+                    // Monitor the job inline - wait for completion
+                    _logger.LogInformation("Monitoring AD account creation job {JobId}", jobId);
+
+                    // Get Azure configuration from environment variables
+                    var subscriptionId = Environment.GetEnvironmentVariable("Azure_SubscriptionId");
+                    var resourceGroup = Environment.GetEnvironmentVariable("Azure_ResourceGroup");
+                    var automationAccount = Environment.GetEnvironmentVariable("Azure_AutomationAccount");
+
                     try
                     {
-                        using var jsonDoc = JsonDocument.Parse(responseContent);
-                        if (jsonDoc.RootElement.TryGetProperty("JobIds", out var jobIds) &&
-                            jobIds.ValueKind == JsonValueKind.Array &&
-                            jobIds.GetArrayLength() > 0)
-                        {
-                            jobId = jobIds[0].GetString();
-                            _logger.LogInformation("AD account creation job ID: {JobId}", jobId);
+                        // Get Azure Management token
+                        var credential = new DefaultAzureCredential();
+                        var token = await credential.GetTokenAsync(
+                            new TokenRequestContext(new[] { "https://management.azure.com/.default" }),
+                            HttpContext.RequestAborted
+                        ).ConfigureAwait(false);
 
-                            // Store job ID in TempData for potential status checking
-                            TempData["ADJobId"] = jobId;
+                        // Construct job status URL
+                        var jobUrl = $"https://management.azure.com/subscriptions/{subscriptionId}" +
+                                    $"/resourceGroups/{resourceGroup}" +
+                                    $"/providers/Microsoft.Automation" +
+                                    $"/automationAccounts/{automationAccount}" +
+                                    $"/jobs/{jobId}?api-version=2023-11-01";
+
+                        // Poll for job completion
+                        var statusClient = _httpClientFactory.CreateClient();
+                        statusClient.DefaultRequestHeaders.Authorization =
+                            new AuthenticationHeaderValue("Bearer", token.Token);
+                        statusClient.DefaultRequestHeaders.Accept.Add(
+                            new MediaTypeWithQualityHeaderValue("application/json"));
+
+                        string jobStatus = "Processing";
+                        int maxAttempts = 30;
+
+                        for (int attempt = 1; attempt <= maxAttempts; attempt++)
+                        {
+                            if (HttpContext.RequestAborted.IsCancellationRequested)
+                            {
+                                _logger.LogWarning("Request cancelled while monitoring job status");
+                                break;
+                            }
+
+                            _logger.LogInformation("Checking job status, attempt {Attempt}/{MaxAttempts}", attempt, maxAttempts);
+
+                            using var statusResponse = await statusClient.GetAsync(jobUrl).ConfigureAwait(false);
+
+                            if (statusResponse.IsSuccessStatusCode)
+                            {
+                                var statusJson = await statusResponse.Content.ReadAsStringAsync().ConfigureAwait(false);
+                                using var statusDoc = JsonDocument.Parse(statusJson);
+
+                                if (statusDoc.RootElement.TryGetProperty("properties", out var properties) &&
+                                    properties.TryGetProperty("provisioningState", out var provisioningState))
+                                {
+                                    jobStatus = provisioningState.GetString() ?? "Unknown";
+                                    _logger.LogInformation("Job {JobId} status: {Status}", jobId, jobStatus);
+
+                                    if (jobStatus == "Succeeded")
+                                    {
+                                        _logger.LogInformation("AD account creation job {JobId} completed successfully", jobId);
+
+                                        // Optionally fetch job output
+                                        try
+                                        {
+                                            var outputUrl = $"{jobUrl.Replace("?api-version=2023-11-01", "")}/output?api-version=2023-11-01";
+                                            statusClient.DefaultRequestHeaders.Clear();
+                                            statusClient.DefaultRequestHeaders.Authorization =
+                                                new AuthenticationHeaderValue("Bearer", token.Token);
+                                            statusClient.DefaultRequestHeaders.Accept.Add(
+                                                new MediaTypeWithQualityHeaderValue("text/plain"));
+
+                                            using var outputResponse = await statusClient.GetAsync(outputUrl).ConfigureAwait(false);
+                                            if (outputResponse.IsSuccessStatusCode)
+                                            {
+                                                var output = await outputResponse.Content.ReadAsStringAsync().ConfigureAwait(false);
+                                                _logger.LogInformation("Job output: {Output}", output);
+                                                TempData["ADJobOutput"] = output;
+                                            }
+                                        }
+                                        catch (Exception ex)
+                                        {
+                                            _logger.LogWarning(ex, "Could not fetch job output, but job succeeded");
+                                        }
+
+                                        adAccountCreated = true;
+                                        break;
+                                    }
+                                    else if (jobStatus == "Failed")
+                                    {
+                                        _logger.LogError("AD account creation job {JobId} failed", jobId);
+
+                                        if (properties.TryGetProperty("exception", out var exception))
+                                        {
+                                            var errorMessage = exception.GetString();
+                                            ModelState.AddModelError("", $"AD account creation failed: {errorMessage}");
+                                        }
+                                        else
+                                        {
+                                            ModelState.AddModelError("", "AD account creation job failed. Please check Azure Automation logs.");
+                                        }
+
+                                        await LoadAvailableTiersToViewBag();
+                                        await SetMultiTenantViewBag();
+                                        return View();
+                                    }
+                                }
+                            }
+                            else
+                            {
+                                _logger.LogWarning("Failed to get job status: {StatusCode}", statusResponse.StatusCode);
+                            }
+
+                            if (attempt < maxAttempts && jobStatus != "Succeeded")
+                            {
+                                await Task.Delay(10000).ConfigureAwait(false);
+                            }
                         }
-                    }
-                    catch (JsonException ex)
-                    {
-                        _logger.LogWarning("Could not parse webhook response for job ID: {Error}", ex.Message);
-                        // Continue anyway - the webhook might have succeeded even if we can't parse the response
-                    }
 
-                    // Wait for the job to complete and check its status
-                    if (!string.IsNullOrEmpty(jobId))
-                    {
-                        _logger.LogInformation("Monitoring AD account creation job {JobId}", jobId);
-
-                        // Get Azure configuration from environment variables
-                        var subscriptionId = Environment.GetEnvironmentVariable("Azure_SubscriptionId");
-                        var resourceGroup = Environment.GetEnvironmentVariable("Azure_ResourceGroup");
-                        var automationAccount = Environment.GetEnvironmentVariable("Azure_AutomationAccount");
-
-                        if (string.IsNullOrEmpty(subscriptionId) || string.IsNullOrEmpty(resourceGroup) || string.IsNullOrEmpty(automationAccount))
+                        if (jobStatus != "Succeeded")
                         {
-                            _logger.LogError("Azure configuration not complete. Cannot monitor job status. Required environment variables: Azure_SubscriptionId, Azure_ResourceGroup, Azure_AutomationAccount");
-                            ModelState.AddModelError("", "Azure configuration incomplete. Cannot verify AD account creation status. Please contact system administrator.");
+                            _logger.LogWarning("Job {JobId} did not complete successfully within timeout. Final status: {Status}", jobId, jobStatus);
+                            ModelState.AddModelError("", $"AD account creation did not complete within time limit. Job status: {jobStatus}");
 
                             await LoadAvailableTiersToViewBag();
                             await SetMultiTenantViewBag();
                             return View();
                         }
-                        else
-                        {
-                            try
-                            {
-                                // Get Azure Management token
-                                var credential = new DefaultAzureCredential();
-                                var token = await credential.GetTokenAsync(
-                                    new TokenRequestContext(new[] { "https://management.azure.com/.default" }),
-                                    HttpContext.RequestAborted
-                                ).ConfigureAwait(false);
-
-                                // Construct job status URL
-                                var jobUrl = $"https://management.azure.com/subscriptions/{subscriptionId}" +
-                                            $"/resourceGroups/{resourceGroup}" +
-                                            $"/providers/Microsoft.Automation" +
-                                            $"/automationAccounts/{automationAccount}" +
-                                            $"/jobs/{jobId}?api-version=2023-11-01";
-
-                                // Poll for job completion
-                                var statusClient = _httpClientFactory.CreateClient();
-                                statusClient.DefaultRequestHeaders.Authorization =
-                                    new AuthenticationHeaderValue("Bearer", token.Token);
-                                statusClient.DefaultRequestHeaders.Accept.Add(
-                                    new MediaTypeWithQualityHeaderValue("application/json"));
-
-                                string jobStatus = "Processing";
-                                int maxAttempts = 30;
-
-                                for (int attempt = 1; attempt <= maxAttempts; attempt++)
-                                {
-                                    // Check if the request has been cancelled
-                                    if (HttpContext.RequestAborted.IsCancellationRequested)
-                                    {
-                                        _logger.LogWarning("Request cancelled while monitoring job status");
-                                        break;
-                                    }
-
-                                    _logger.LogInformation("Checking job status, attempt {Attempt}/{MaxAttempts}", attempt, maxAttempts);
-
-                                    using var statusResponse = await statusClient.GetAsync(jobUrl).ConfigureAwait(false);
-
-                                    if (statusResponse.IsSuccessStatusCode)
-                                    {
-                                        var statusJson = await statusResponse.Content.ReadAsStringAsync().ConfigureAwait(false);
-                                        using var statusDoc = JsonDocument.Parse(statusJson);
-
-                                        if (statusDoc.RootElement.TryGetProperty("properties", out var properties) &&
-                                            properties.TryGetProperty("provisioningState", out var provisioningState))
-                                        {
-                                            jobStatus = provisioningState.GetString() ?? "Unknown";
-                                            _logger.LogInformation("Job {JobId} status: {Status}", jobId, jobStatus);
-
-                                            if (jobStatus == "Succeeded")
-                                            {
-                                                _logger.LogInformation("AD account creation job {JobId} completed successfully", jobId);
-
-                                                // Optionally fetch job output
-                                                try
-                                                {
-                                                    var outputUrl = $"{jobUrl.Replace("?api-version=2023-11-01", "")}/output?api-version=2023-11-01";
-                                                    statusClient.DefaultRequestHeaders.Clear();
-                                                    statusClient.DefaultRequestHeaders.Authorization =
-                                                        new AuthenticationHeaderValue("Bearer", token.Token);
-                                                    statusClient.DefaultRequestHeaders.Accept.Add(
-                                                        new MediaTypeWithQualityHeaderValue("text/plain"));
-
-                                                    using var outputResponse = await statusClient.GetAsync(outputUrl).ConfigureAwait(false);
-                                                    if (outputResponse.IsSuccessStatusCode)
-                                                    {
-                                                        var output = await outputResponse.Content.ReadAsStringAsync().ConfigureAwait(false);
-                                                        _logger.LogInformation("Job output: {Output}", output);
-                                                        TempData["ADJobOutput"] = output;
-                                                    }
-                                                }
-                                                catch (Exception ex)
-                                                {
-                                                    _logger.LogWarning(ex, "Could not fetch job output, but job succeeded");
-                                                }
-
-                                                adAccountCreated = true;
-                                                break;
-                                            }
-                                            else if (jobStatus == "Failed")
-                                            {
-                                                _logger.LogError("AD account creation job {JobId} failed", jobId);
-
-                                                // Try to get error details
-                                                if (properties.TryGetProperty("exception", out var exception))
-                                                {
-                                                    var errorMessage = exception.GetString();
-                                                    ModelState.AddModelError("", $"AD account creation failed: {errorMessage}");
-                                                }
-                                                else
-                                                {
-                                                    ModelState.AddModelError("", "AD account creation job failed. Please check Azure Automation logs.");
-                                                }
-
-                                                await LoadAvailableTiersToViewBag();
-                                                await SetMultiTenantViewBag();
-                                                return View();
-                                            }
-                                        }
-                                    }
-                                    else
-                                    {
-                                        _logger.LogWarning("Failed to get job status: {StatusCode}", statusResponse.StatusCode);
-                                    }
-
-                                    // If not succeeded or failed, wait before next attempt
-                                    if (attempt < maxAttempts && jobStatus != "Succeeded")
-                                    {
-                                        await Task.Delay(10000).ConfigureAwait(false); // Wait 10 seconds
-                                    }
-                                }
-
-                                // Check final status
-                                if (jobStatus != "Succeeded")
-                                {
-                                    _logger.LogWarning("Job {JobId} did not complete successfully within timeout. Final status: {Status}", jobId, jobStatus);
-                                    ModelState.AddModelError("", $"AD account creation did not complete within time limit. Job status: {jobStatus}");
-
-                                    await LoadAvailableTiersToViewBag();
-                                    await SetMultiTenantViewBag();
-                                    return View();
-                                }
-                            }
-                            catch (Exception ex)
-                            {
-                                _logger.LogError(ex, "Error monitoring job status");
-                                // Fall back to waiting
-                                _logger.LogWarning("Could not monitor job status, waiting 30 seconds");
-                                await Task.Delay(30000);
-                            }
-                        }
                     }
-                    else
+                    catch (Exception ex)
                     {
-                        // No job ID received, this is an error
-                        _logger.LogError("No job ID received from webhook");
-                        ModelState.AddModelError("", "AD account creation webhook did not return a job ID");
-
-                        await LoadAvailableTiersToViewBag();
-                        await SetMultiTenantViewBag();
-                        return View();
+                        _logger.LogError(ex, "Error monitoring job status");
+                        _logger.LogWarning("Could not monitor job status, waiting 30 seconds");
+                        await Task.Delay(30000);
                     }
-                }
-                catch (HttpRequestException ex)
-                {
-                    _logger.LogError(ex, "Network error calling AD account creation webhook");
-                    ModelState.AddModelError("", "Network error creating Active Directory account. Please try again.");
-
-                    await LoadAvailableTiersToViewBag();
-                    await SetMultiTenantViewBag();
-
-                    return View();
-                }
-                catch (TaskCanceledException)
-                {
-                    _logger.LogError("Timeout calling AD account creation webhook");
-                    ModelState.AddModelError("", "Timeout creating Active Directory account. The operation took too long.");
-
-                    await LoadAvailableTiersToViewBag();
-                    await SetMultiTenantViewBag();
-
-                    return View();
                 }
                 catch (Exception ex)
                 {
@@ -1480,12 +1357,12 @@ namespace dizparc_elevate.Controllers
             }
             else
             {
-                _logger.LogInformation("No AD webhook configured, treating as success");
-                adAccountCreated = true; // No webhook = no AD account needed
+                _logger.LogInformation("No automation configured, treating as success");
+                adAccountCreated = true;
             }
 
             // Only create the user if AD account creation succeeded (or wasn't needed)
-            if (adAccountCreated || !webhookEnvConfigured)
+            if (adAccountCreated || !automationConfigured)
             {
                 try
                 {
@@ -1505,8 +1382,8 @@ namespace dizparc_elevate.Controllers
                     _context.ElevateUsers.Add(newUser);
                     await _context.SaveChangesAsync();
 
-                    _logger.LogInformation("User {UserName} created successfully with ID {UserId}. AD Account: {ADCreated}",
-                        userName, newUser.ElevateUsersId, webhookEnvConfigured);
+                    _logger.LogInformation("User {UserName} created successfully with ID {UserId}. Automation: {AutomationConfigured}",
+                        userName, newUser.ElevateUsersId, automationConfigured);
 
                     await _auditService.LogAsync("UserCreated", new { userId = newUser.ElevateUsersId, userName, elevateAccount, tier });
 
@@ -1582,21 +1459,27 @@ namespace dizparc_elevate.Controllers
             // Get current user info for audit fields
             var currentUserName = User.Identity?.Name ?? "System";
 
-            // Call webhook to create Active Directory account
-            var webhookEnvConfigured2 = !string.IsNullOrEmpty(
-                Environment.GetEnvironmentVariable("Create_ElevateAccount_webhook")?.Trim());
+            // Check if Azure Automation is configured
+            var automationConfigured2 = !string.IsNullOrEmpty(
+                Environment.GetEnvironmentVariable("Azure_AutomationAccount")?.Trim());
 
-            if (webhookEnvConfigured2)
+            if (automationConfigured2)
             {
                 try
                 {
-                    _logger.LogInformation("Calling AD account creation webhook for user: {UserName}", userName);
+                    _logger.LogInformation("Starting AD account creation runbook for user: {UserName}", userName);
 
-                    var payload = new { username = elevateAccount };
+                    var parameters = new Dictionary<string, string>
+                    {
+                        ["username"] = elevateAccount
+                    };
 
-                    var webhookResult = await _webhookService.PostFromEnvAsync("Create_ElevateAccount_webhook", payload);
+                    var runbookResult = await _runbookService.StartRunbookAsync(
+                        RunbookNames.CreateElevateAccount,
+                        effectiveCustomerId,
+                        parameters);
 
-                    if (!webhookResult.Success)
+                    if (!runbookResult.Success)
                     {
                         // Create user with error status
                         var errorUser = new ElevateUser
@@ -1617,49 +1500,7 @@ namespace dizparc_elevate.Controllers
                         return Json(new { success = false, error = "Failed to initiate Active Directory account creation. User created with error status." });
                     }
 
-                    // Parse the response to get job ID
-                    var responseContent = webhookResult.ResponseBody ?? "";
-                    _logger.LogInformation("AD account creation webhook response: {Response}", responseContent);
-
-                    string? jobId = null;
-                    try
-                    {
-                        using var jsonDoc = JsonDocument.Parse(responseContent);
-                        if (jsonDoc.RootElement.TryGetProperty("JobIds", out var jobIds) &&
-                            jobIds.ValueKind == JsonValueKind.Array &&
-                            jobIds.GetArrayLength() > 0)
-                        {
-                            jobId = jobIds[0].GetString();
-                            _logger.LogInformation("AD account creation job ID: {JobId}", jobId);
-                        }
-                    }
-                    catch (JsonException ex)
-                    {
-                        _logger.LogWarning("Could not parse webhook response for job ID: {Error}", ex.Message);
-                    }
-
-                    if (string.IsNullOrEmpty(jobId))
-                    {
-                        _logger.LogError("No job ID received from webhook");
-
-                        // Create user with error status
-                        var errorUser = new ElevateUser
-                        {
-                            UserName = userName,
-                            ElevateAccount = elevateAccount,
-                            PhoneNumber = phoneNumber,
-                            Tier = tier,
-                            Status = "error",
-                            CustomerId = effectiveCustomerId,
-                            Created = DateTime.UtcNow,
-                            CreatedBy = currentUserName
-                        };
-
-                        _context.ElevateUsers.Add(errorUser);
-                        await _context.SaveChangesAsync();
-
-                        return Json(new { success = false, error = "AD account creation webhook did not return a job ID. User created with error status." });
-                    }
+                    var jobId = runbookResult.JobId;
 
                     // Create user with pending status
                     var newUser = new ElevateUser
@@ -1717,7 +1558,7 @@ namespace dizparc_elevate.Controllers
             }
             else
             {
-                // No webhook configured, create user directly with active status
+                // No automation configured, create user directly with active status
                 try
                 {
                     var newUser = new ElevateUser
@@ -1735,7 +1576,7 @@ namespace dizparc_elevate.Controllers
                     _context.ElevateUsers.Add(newUser);
                     await _context.SaveChangesAsync();
 
-                    _logger.LogInformation("User {UserName} created successfully with active status (no AD account)", userName);
+                    _logger.LogInformation("User {UserName} created successfully with active status (no automation configured)", userName);
 
                     await _auditService.LogAsync("UserCreated", new { userId = newUser.ElevateUsersId, userName, elevateAccount, tier, status = "active" });
 
