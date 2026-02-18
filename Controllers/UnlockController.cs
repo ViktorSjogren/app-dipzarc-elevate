@@ -276,7 +276,7 @@ namespace dizparc_elevate.Controllers
 
                 await _context.SaveChangesAsync();
 
-                return RedirectToAction("Success", new { username = username.Trim() });
+                return RedirectToAction("Index", "Home");
             }
             catch (Exception ex)
             {

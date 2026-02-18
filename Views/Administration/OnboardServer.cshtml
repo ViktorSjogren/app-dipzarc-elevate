@@ -142,6 +142,9 @@
             submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin me-1"></i>Processing...';
             processingAlert.classList.remove('d-none');
 
+            const cancelBtn = form.querySelector('a.btn-outline-secondary');
+            if (cancelBtn) cancelBtn.style.display = 'none';
+
             try {
                 const token = document.querySelector('input[name="__RequestVerificationToken"]').value;
                 const response = await fetch('@Url.Action("StartServerOnboarding", "Administration")', {
@@ -159,11 +162,13 @@
                     processingAlert.classList.add('d-none');
                     showError(result.error || 'An error occurred.');
                     resetButton();
+                    if (cancelBtn) cancelBtn.style.display = '';
                 }
             } catch (error) {
                 processingAlert.classList.add('d-none');
                 showError('A network error occurred. Please try again.');
                 resetButton();
+                if (cancelBtn) cancelBtn.style.display = '';
             }
         });
 

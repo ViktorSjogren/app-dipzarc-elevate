@@ -426,6 +426,10 @@
                 btn.innerHTML = '<i class="fas fa-cog fa-spin me-2"></i>Processing Request...';
                 btn.classList.add('btn-loading');
                 setTimeout(function() { btn.disabled = true; }, 0);
+
+                // Hide the "Back to Dashboard" button
+                var backBtn = document.querySelector('a[href*="Home"]');
+                if (backBtn) backBtn.style.display = 'none';
             }
         });
 

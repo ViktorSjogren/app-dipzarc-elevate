@@ -236,18 +236,8 @@
             submitBtn.disabled = true;
             submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin me-1"></i>Creating...';
 
-            const overlay = document.createElement('div');
-            overlay.id = 'userCreationOverlay';
-            overlay.style.cssText = 'position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.7);display:flex;align-items:center;justify-content:center;z-index:9999;';
-            overlay.innerHTML = `
-                <div class="card" style="background: rgba(42, 20, 80, 0.95); border: 2px solid var(--color-primary-dark); min-width: 400px;">
-                    <div class="card-body text-center text-white p-4">
-                        <div class="spinner-border text-warning mb-3" style="width: 3rem; height: 3rem;" role="status"><span class="visually-hidden">Loading...</span></div>
-                        <h5 id="statusTitle">Creating user...</h5>
-                        <p id="statusMessage" class="text-warning mb-2">Processing request</p>
-                    </div>
-                </div>`;
-            document.body.appendChild(overlay);
+            const cancelBtn = form.querySelector('a.btn-outline-secondary');
+            if (cancelBtn) cancelBtn.style.display = 'none';
 
             try {
                 const url = '/Administration/AddUser';
@@ -265,18 +255,13 @@
                     else { throw new Error(`Server error: ${response.status} - ${response.statusText}`); }
                 }
                 const result = await response.json();
-                if (!result.success) { document.body.removeChild(overlay); submitBtn.disabled = false; submitBtn.innerHTML = originalButtonContent; showError(result.error || 'Failed to create user'); return; }
+                if (!result.success) { submitBtn.disabled = false; submitBtn.innerHTML = originalButtonContent; if (cancelBtn) cancelBtn.style.display = ''; showError(result.error || 'Failed to create user'); return; }
 
-                document.getElementById('statusTitle').textContent = 'Success!';
-                document.getElementById('statusMessage').textContent = result.message || 'User created successfully';
-                const spinner = overlay.querySelector('.spinner-border');
-                if (spinner) { spinner.className = 'text-success mb-3'; spinner.innerHTML = '<i class="fas fa-check-circle" style="font-size: 3rem;"></i>'; }
-                if (result.userId) { document.getElementById('statusMessage').innerHTML = `${result.message}<br><small class="text-muted">User ID: ${result.userId}</small>`; }
-                setTimeout(() => { document.body.removeChild(overlay); showSuccess(result.message || 'User created successfully'); setTimeout(() => { window.location.href = '@Url.Action("UserAdministration", "Administration")'; }, 1500); }, 1500);
+                window.location.href = '@Url.Action("UserAdministration", "Administration")';
             } catch (error) {
-                if (document.body.contains(overlay)) document.body.removeChild(overlay);
                 submitBtn.disabled = false;
                 submitBtn.innerHTML = originalButtonContent;
+                if (cancelBtn) cancelBtn.style.display = '';
                 showError(error.message || 'Network error. Please check your connection and try again.');
             }
         });
@@ -288,13 +273,6 @@
             alertDiv.innerHTML = `<i class="fas fa-exclamation-triangle me-2"></i><strong>Error:</strong> ${message}<button type="button" class="btn-close" data-bs-dismiss="alert"></button>`;
             document.body.appendChild(alertDiv);
             setTimeout(() => { if (document.body.contains(alertDiv)) document.body.removeChild(alertDiv); }, 10000);
-        }
-        function showSuccess(message) {
-            const alertDiv = document.createElement('div');
-            alertDiv.className = 'alert alert-success alert-dismissible fade show position-fixed';
-            alertDiv.style.cssText = 'top:20px;right:20px;z-index:10000;min-width:300px;';
-            alertDiv.innerHTML = `<i class="fas fa-check-circle me-2"></i><strong>Success:</strong> ${message}<button type="button" class="btn-close" data-bs-dismiss="alert"></button>`;
-            document.body.appendChild(alertDiv);
         }
 
         const phoneInput = document.getElementById('phoneNumber');
