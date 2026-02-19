@@ -1,5 +1,12 @@
 namespace dizparc_elevate.Services
 {
+    public class RunbookJobStatusResult
+    {
+        public bool Success { get; set; }
+        public string? ProvisioningState { get; set; }
+        public string? ErrorMessage { get; set; }
+    }
+
     public class RunbookJobResult
     {
         /// <summary>Whether the job was started successfully (HTTP 2xx from Azure).</summary>
@@ -32,6 +39,13 @@ namespace dizparc_elevate.Services
             string runbookName,
             int customerId,
             Dictionary<string, string> parameters,
+            CancellationToken cancellationToken = default);
+
+        /// <summary>
+        /// Checks the provisioning state of an Azure Automation job.
+        /// </summary>
+        Task<RunbookJobStatusResult> GetJobStatusAsync(
+            string jobId,
             CancellationToken cancellationToken = default);
     }
 }

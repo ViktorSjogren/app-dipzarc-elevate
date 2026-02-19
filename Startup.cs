@@ -233,6 +233,9 @@ namespace dizparc_elevate
             // Register Graph service for Entra ID group management
             services.AddScoped<IGraphService, GraphService>();
 
+            // Background service to monitor Azure Automation job status
+            services.AddHostedService<ElevateJobMonitorService>();
+
             // Configure authorization policies
             services.AddAuthorization(options =>
             {

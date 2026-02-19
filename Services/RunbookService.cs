@@ -166,5 +166,67 @@ namespace dizparc_elevate.Services
                 };
             }
         }
+
+        public async Task<RunbookJobStatusResult> GetJobStatusAsync(
+            string jobId,
+            CancellationToken cancellationToken = default)
+        {
+            try
+            {
+                var credential = new DefaultAzureCredential();
+                var token = await credential.GetTokenAsync(
+                    new TokenRequestContext(new[] { "https://management.azure.com/.default" }),
+                    cancellationToken);
+
+                var url = $"https://management.azure.com/subscriptions/{_subscriptionId}"
+                    + $"/resourceGroups/{_resourceGroup}"
+                    + $"/providers/Microsoft.Automation"
+                    + $"/automationAccounts/{_automationAccount}"
+                    + $"/jobs/{jobId}?api-version=2023-11-01";
+
+                var httpClient = _httpClientFactory.CreateClient("AzureManagement");
+                using var request = new HttpRequestMessage(HttpMethod.Get, url);
+                request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", token.Token);
+
+                using var response = await httpClient.SendAsync(request, cancellationToken);
+                var responseBody = await response.Content.ReadAsStringAsync(cancellationToken);
+
+                if (!response.IsSuccessStatusCode)
+                {
+                    _logger.LogWarning(
+                        "Failed to get job status for {JobId}. Status: {Status}",
+                        jobId, (int)response.StatusCode);
+
+                    return new RunbookJobStatusResult
+                    {
+                        Success = false,
+                        ErrorMessage = $"Azure returned {(int)response.StatusCode}"
+                    };
+                }
+
+                string? provisioningState = null;
+                using var doc = JsonDocument.Parse(responseBody);
+                if (doc.RootElement.TryGetProperty("properties", out var props) &&
+                    props.TryGetProperty("provisioningState", out var ps))
+                {
+                    provisioningState = ps.GetString();
+                }
+
+                return new RunbookJobStatusResult
+                {
+                    Success = true,
+                    ProvisioningState = provisioningState
+                };
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Exception checking job status for {JobId}", jobId);
+                return new RunbookJobStatusResult
+                {
+                    Success = false,
+                    ErrorMessage = $"Exception: {ex.Message}"
+                };
+            }
+        }
     }
 }

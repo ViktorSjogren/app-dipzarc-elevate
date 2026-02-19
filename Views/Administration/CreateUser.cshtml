@@ -42,7 +42,7 @@
                                 </div>
                             }
 
-                            <form method="post" action="@Url.Action("CreateUser", "Administration")">
+                            <form id="createUserForm" method="post" action="@Url.Action("AddUser", "Administration")">
                                 @Html.AntiForgeryToken()
 
                                 <!-- Username (Entra ID search) -->
@@ -208,7 +208,7 @@
             }
         });
 
-        const form = document.querySelector('form');
+        const form = document.getElementById('createUserForm');
         const visibleInputs = form.querySelectorAll('#elevateAccount, #phoneNumber, #tier');
         visibleInputs.forEach(input => {
             input.addEventListener('blur', function() {
