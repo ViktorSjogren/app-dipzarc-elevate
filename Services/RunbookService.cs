@@ -69,6 +69,18 @@ namespace dizparc_elevate.Services
                     };
                 }
 
+                // Temporary: Unlock runbook hasn't been ported to hybrid worker yet.
+                // Run it on Azure and pass tenant_id as a parameter instead.
+                bool useHybridWorker = runbookName != RunbookNames.UnlockActiveDirectoryAccount;
+
+                if (!useHybridWorker)
+                {
+                    parameters = new Dictionary<string, string>(parameters)
+                    {
+                        ["tenant_id"] = tenantId
+                    };
+                }
+
                 // Acquire Azure Management token
                 var credential = new DefaultAzureCredential();
                 var token = await credential.GetTokenAsync(
@@ -88,7 +100,7 @@ namespace dizparc_elevate.Services
                     {
                         runbook = new { name = runbookName },
                         parameters = parameters,
-                        runOn = tenantId
+                        runOn = useHybridWorker ? tenantId : (string?)null
                     }
                 };
 
@@ -103,8 +115,8 @@ namespace dizparc_elevate.Services
                 request.Content = new StringContent(json, Encoding.UTF8, "application/json");
 
                 _logger.LogInformation(
-                    "Starting runbook {Runbook} for CustomerId {CustomerId} on HybridWorker {HWG}. JobId: {JobId}",
-                    runbookName, customerId, tenantId, jobId);
+                    "Starting runbook {Runbook} for CustomerId {CustomerId} on {Target}. JobId: {JobId}",
+                    runbookName, customerId, useHybridWorker ? $"HybridWorker {tenantId}" : "Azure", jobId);
 
                 using var response = await httpClient.SendAsync(request, cancellationToken);
                 var responseBody = await response.Content.ReadAsStringAsync(cancellationToken);

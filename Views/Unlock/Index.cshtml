@@ -81,10 +81,10 @@
                                     <i class="fas fa-id-badge me-1 icon-warning"></i>
                                     Elevate Account <span class="text-danger">*</span>
                                 </label>
-                                <select class="form-control" id="accountSelector" style="background: rgba(255,255,255,0.08); border: 1px solid rgba(255,255,255,0.2); color: white;">
+                                <select class="form-control" id="accountSelector">
                                     @foreach (var account in elevateAccounts)
                                     {
-                                        <option value="@account" selected="@(account == (string)ViewBag.ElevateAccount)" style="background: #2A1450;">@account</option>
+                                        <option value="@account" selected="@(account == (string)ViewBag.ElevateAccount)">@account</option>
                                     }
                                 </select>
                                 <small class="form-text text-primary-light opacity-70">
